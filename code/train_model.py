@@ -437,18 +437,25 @@ def run_experiment(working, refs, max_samples, duration, structured,
         idx_train = idx_train_.iloc[train]
         idx_val = idx_train_.iloc[val]
 
-        chord_weights = estimate_class_weights(idx_train['id'].values,
-                                               pump['chord_tag'],
-                                               quality_only=True)
+        if weighted:
 
-        train_weights = weight_tracks(idx_train['id'].values, chord_weights,
-                                      pump['chord_tag'],
-                                      quality_only=True, temporal=True)
+            chord_weights = estimate_class_weights(idx_train['id'].values,
+                                                   pump['chord_tag'],
+                                                   quality_only=True)
+
+            train_weights = weight_tracks(idx_train['id'].values,
+                                          chord_weights,
+                                          pump['chord_tag'],
+                                          quality_only=True,
+                                          temporal=True)
+        else:
+            train_weights = pd.Series(data=1, index=idx_train.index)
 
         gen_train = data_generator(working,
                                    train_weights.index, sampler, epoch_size,
                                    augmentation=augmentation,
-                                   lam=rate, batch_size=batch_size,
+                                   lam=rate,
+                                   batch_size=batch_size,
                                    revive=True,
                                    weights=train_weights,
                                    random_state=seed)
@@ -457,7 +464,8 @@ def run_experiment(working, refs, max_samples, duration, structured,
 
         gen_val = data_generator(working,
                                  idx_val['id'].values, sampler, len(idx_val),
-                                 batch_size=batch_size, revive=True,
+                                 batch_size=batch_size,
+                                 revive=True,
                                  random_state=seed)
 
         gen_val = keras_tuples(gen_val(), inputs=inputs, outputs=outputs)
