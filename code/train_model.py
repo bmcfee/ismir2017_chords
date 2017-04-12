@@ -454,7 +454,6 @@ def run_experiment(working, refs, max_samples, duration, structured,
             train_weights = pd.Series(data={k: 1.0
                                             for k in idx_train['id'].values})
 
-        print(train_weights)
         gen_train = data_generator(working,
                                    train_weights.index, sampler, epoch_size,
                                    augmentation=augmentation,
