@@ -39,7 +39,7 @@ def process_arguments(args):
 
     parser.add_argument('--reference-path', dest='refs', type=str,
                         default=os.path.join(os.environ['HOME'],
-                                             'eric_chords', 'references_v2'),
+                                             'data', 'eric_chords', 'references_v2'),
                         help='Path to reference annotations')
 
     parser.add_argument('--working', dest='working', type=str,
