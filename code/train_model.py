@@ -541,7 +541,8 @@ if __name__ == '__main__':
 
     run_experiment(params.working, params.refs,
                    params.max_samples, params.duration,
-                   params.augmentation, params.weighted, params.rate,
+                   params.structured, params.augmentation, params.weighted,
+                   params.rate,
                    params.batch_size,
                    params.epochs, params.epoch_size,
                    params.validation_size,
