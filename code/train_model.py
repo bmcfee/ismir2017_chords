@@ -323,7 +323,7 @@ def construct_model(pump, structured):
 
 def make_output_path(working, structured, augmentation, weighted):
 
-    subdir = ''
+    subdir = 'model'
     if structured:
         subdir += '_struct'
 
@@ -450,6 +450,7 @@ def run_experiment(working, refs, max_samples, duration, structured,
                                           pump['chord_tag'],
                                           quality_only=True,
                                           temporal=True)
+            print(train_weights)
         else:
             train_weights = pd.Series(data=1, index=idx_train.index)
 
