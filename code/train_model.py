@@ -439,11 +439,13 @@ def run_experiment(working, refs, max_samples, duration, structured,
 
         if weighted:
 
-            chord_weights = estimate_class_weights(idx_train['id'].values,
+            chord_weights = estimate_class_weights(refs,
+                                                   idx_train['id'].values,
                                                    pump['chord_tag'],
                                                    quality_only=True)
 
-            train_weights = weight_tracks(idx_train['id'].values,
+            train_weights = weight_tracks(refs,
+                                          idx_train['id'].values,
                                           chord_weights,
                                           pump['chord_tag'],
                                           quality_only=True,
