@@ -341,20 +341,23 @@ def make_output_path(working, structured, augmentation, weighted):
     return outdir
 
 
-def score_model(pump, model, idx, working, refs):
+def score_model(pump, model, idx, working, refs, structured):
 
     results = {}
     for item in tqdm(idx, desc='Evaluating the model'):
         jam = jams.load('{}/{}.jams'.format(refs, item), validate=False)
         datum = np.load('{}/pump/{}.npz'.format(working, item))['cqt/mag']
 
-        ann = pump['chord_tag'].inverse(model.predict(datum)[0][0])
+        output = model.predict(datum)[0]
+        if structured:
+            output = output[0]
+        ann = pump['chord_tag'].inverse(output)
         results[item] = jams.eval.chord(jam.annotations['chord', 0], ann)
 
-    return pd.DataFrame.from_dict(results, orient='index')['root', 'thirds',
-                                                           'triads', 'tetrads',
-                                                           'mirex', 'majmin',
-                                                           'sevenths']
+    return pd.DataFrame.from_dict(results, orient='index')[['root', 'thirds',
+                                                            'triads', 'tetrads',
+                                                            'mirex', 'majmin',
+                                                            'sevenths']]
 
 
 def run_experiment(working, refs, max_samples, duration, structured,
@@ -475,12 +478,14 @@ def run_experiment(working, refs, max_samples, duration, structured,
 
         loss = {'chord_tag': 'sparse_categorical_crossentropy'}
         metrics = {'chord_tag': 'sparse_categorical_accuracy'}
-        monitor = 'val_chord_tag_loss'
 
         if structured:
             loss.update(chord_pitch='binary_crossentropy',
                         chord_root='sparse_categorical_crossentropy',
                         chord_bass='sparse_categorical_crossentropy')
+            monitor = 'val_chord_tag_loss'
+        else:
+            monitor = 'loss'
 
         model.compile(K.optimizers.Adam(), loss=loss, metrics=metrics)
 
@@ -530,7 +535,7 @@ def run_experiment(working, refs, max_samples, duration, structured,
                                             'test{:02d}.csv'.format(split)),
                                header=None, names=['id'])
 
-        test_scores = score_model(pump, model, idx_test, working, refs)
+        test_scores = score_model(pump, model, idx_test['id'], working, refs, structured)
 
         output_scores = os.path.join(output_path,
                                      'fold{:02d}_test.csv'.format(split))
