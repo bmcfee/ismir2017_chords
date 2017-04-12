@@ -450,9 +450,9 @@ def run_experiment(working, refs, max_samples, duration, structured,
                                           pump['chord_tag'],
                                           quality_only=True,
                                           temporal=True)
-            print(train_weights)
         else:
-            train_weights = pd.Series(data=1, index=idx_train.index)
+            train_weights = pd.Series(data={k: 1
+                                            for k in idx_train['id'].values})
 
         gen_train = data_generator(working,
                                    train_weights.index, sampler, epoch_size,
