@@ -411,7 +411,7 @@ def run_experiment(working, refs, max_samples, duration, structured,
     '''
 
     # Load the pump
-    with open(os.path.read(working, 'pump.pkl', 'rb')) as fd:
+    with open(os.path.join(working, 'pump.pkl', 'rb')) as fd:
         pump = pickle.load(fd)
 
     # Build the sampler
