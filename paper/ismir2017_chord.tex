@@ -18,7 +18,7 @@
 
 % Title.
 % ------
-\title{Paper Template For ISMIR \conferenceyear}
+\title{Structured training for large-vocabulary chord recognition}
 
 % Note: Please do NOT use \thanks or a \footnote in any of the author markup
 
@@ -75,13 +75,140 @@ The abstract should be placed at the top left column and should contain about 15
 %
 \section{Introduction}\label{sec:introduction}
 
-This template includes all the information about formatting manuscripts for the ISMIR \conferenceyear\ Conference.
-Please follow these guidelines to give the final proceedings a uniform look.
-Most of the required formatting is achieved automatically by using the supplied
-style file (\LaTeX) or template (Word).
-If you have any questions, please contact the Program Committee (\texttt{ismir\conferenceyear-papers@ismir.net}).
-This template can be downloaded from the ISMIR \conferenceyear\ web site (\texttt{http://ismir\conferenceyear.ismir.net}).
+% Chord recognition is maturing as a problem within MIR
+
+% The gains to be had are now in the large-vocab regime (eg, tetrads/sevenths)
+
+% These classes are rare in the common datasets, so modeling them is hard
+
+% But we can leverage the structure of chord space to better exploit available data
+
+\subsection{Our contributions}
+
+Training from structured representations
+
+Deep recurrent chord model
+
+Sampling strategy for training
+
+Investigating data augmentation
+
 %
+\section{Related work}
+
+% 2016 - idealized chroma prediction
+
+% 2015 - four timely lessons
+
+% 2013 - TMC (157)
+
+% 2012 - HPA (bass tracking)
+
+\section{Methods}
+
+% Use convolutional filters for local representation
+
+% Use a bidrectional recurrent model to capture dynamics
+
+% Predict chord label from latent state representation
+
+%% either directly
+
+%% or by first estimating (root, pitch classes, bass)
+
+\subsection{Encoder-decoder model}
+
+% Figure for the basic model
+
+% conv encoder, recurrent decoder model
+
+% batch-norm on the cqt for standardization
+
+% first filter = transient suppressor / local salience
+
+% 3*12 full-height convolutional filters
+
+% bidirectional recurrent model (GRU), d=128 in each direction
+
+% logistic to output vocabulary
+
+
+\subsection{Chord vocabulary}
+
+% For training the tag decoder, we map to a fixed vocabulary
+%   1. discard missing / extra notes
+%   2. discard inversions
+%   3. split into (root, pitch classes)
+%   4. match against quality templates:
+%       - N
+%       - maj, min, dim, aug
+%       - min6, maj6
+%       - min7, maj7, dom7, dim7, hdim7, minmaj7
+%       - sus2, sus4
+%       - X (unmatched)
+%   5. resulting vocab = 12 * 14 + 2 = 170 classes
+%
+
+\subsection{Structured training}
+
+% Figure for the structured model
+
+% Note: for structured training, no simplification is performed
+%       so that the model can still learn to map power chords to major, for example
+%       but the decoder component is still trained to map to the constrained vocab
+
+\subsection{Biased sampling}
+
+% EJH used importance weighting per class
+% we do it per track x
+%   w(x) = 1/p^(x)
+%   p^(x) := gmean_t p(y_t | x) = avg. probability of labels within the track
+% sample patches uniformly from within tracks
+% idea: down-weight tracks with low-entropy (compared to the corpus)
+%   basically weighting by perplexity compared to the background distribution
+%
+% note: p(y) looks only at quality (after simplification), not root
+
+\subsection{Data augmentation}
+
+% MUDA
+%   training set is augmented with pitch shifts of +- n semitones for n in {1,2,\dots, 6}
+%   muda does annotation deformation as well
+% all augmentations of a track get the same importance weight
+
+
+\section{Evaluation}
+
+\subsection{Data}
+
+% cite: ejh2015
+%   1217, using the same 5-fold CV splits for comparison purposes
+%   each training fold is split 75/25 for validation
+%   training set => 12x by data augmentation
+
+% features
+%   librosa 0.5
+%   log cqt power, 36bpo, (C1 - C7) (260 bins)
+%   sr=44100, hop = 4096 => ~96ms frame rate
+
+% training setup
+%   8sec patches (83 frames)
+%   32 patches per batch
+%   512 batches per epoch
+%   ADAM optimization
+%   Keras + tensorflow
+%   validation by decoder loss
+%   learning rate reduction after 10 epochs
+%   early stopping after 20 epochs
+%   maximum 100 epochs
+
+
+\subsection{Results}
+
+\section{Discussion}
+
+\section*{Acknowledgments}
+
 \section{Paper Length \& File Size}
 We adopt a ``(6+n)-page policy'' for ISMIR 2017. That is, each paper may have a maximum of six pages of technical content (including figures and tables) \textcolor{red}{with additional optional pages that contain only references and acknowledgments. Note that acknowledgments should not be included in the anonymized submission.}
 
