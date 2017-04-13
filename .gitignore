@@ -1,89 +1,165 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
-.hypothesis/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
+## Core latex/pdflatex auxiliary files:
+*.aux
+*.lof
 *.log
-local_settings.py
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
 
-# Flask stuff:
-instance/
-.webassets-cache
+## Intermediate documents:
+*.dvi
+*-converted-to.*
+# these rules might exclude image files for figures etc.
+# *.ps
+# *.eps
+# *.pdf
 
-# Scrapy stuff:
-.scrapy
+## Bibliography auxiliary files (bibtex/biblatex/biber):
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.brf
+*.run.xml
 
-# Sphinx documentation
-docs/_build/
+## Build tool auxiliary files:
+*.fdb_latexmk
+*.synctex
+*.synctex.gz
+*.synctex.gz(busy)
+*.pdfsync
 
-# PyBuilder
-target/
+## Auxiliary and intermediate files from other packages:
+# algorithms
+*.alg
+*.loa
 
-# IPython Notebook
-.ipynb_checkpoints
+# achemso
+acs-*.bib
 
-# pyenv
-.python-version
+# amsthm
+*.thm
 
-# celery beat schedule file
-celerybeat-schedule
+# beamer
+*.nav
+*.snm
+*.vrb
 
-# dotenv
-.env
+# cprotect
+*.cpt
 
-# virtualenv
-venv/
-ENV/
+#(e)ledmac/(e)ledpar
+*.end
+*.[1-9]
+*.[1-9][0-9]
+*.[1-9][0-9][0-9]
+*.[1-9]R
+*.[1-9][0-9]R
+*.[1-9][0-9][0-9]R
+*.eledsec[1-9]
+*.eledsec[1-9]R
+*.eledsec[1-9][0-9]
+*.eledsec[1-9][0-9]R
+*.eledsec[1-9][0-9][0-9]
+*.eledsec[1-9][0-9][0-9]R
 
-# Spyder project settings
-.spyderproject
+# glossaries
+*.acn
+*.acr
+*.glg
+*.glo
+*.gls
 
-# Rope project settings
-.ropeproject
+# gnuplottex
+*-gnuplottex-*
+
+# hyperref
+*.brf
+
+# knitr
+*-concordance.tex
+*.tikz
+*-tikzDictionary
+
+# listings
+*.lol
+
+# makeidx
+*.idx
+*.ilg
+*.ind
+*.ist
+
+# minitoc
+*.maf
+*.mtc
+*.mtc[0-9]
+*.mtc[1-9][0-9]
+
+# minted
+_minted*
+*.pyg
+
+# morewrites
+*.mw
+
+# mylatexformat
+*.fmt
+
+# nomencl
+*.nlo
+
+# sagetex
+*.sagetex.sage
+*.sagetex.py
+*.sagetex.scmd
+
+# sympy
+*.sout
+*.sympy
+sympy-plots-for-*.tex/
+
+# pdfcomment
+*.upa
+*.upb
+
+#pythontex
+*.pytxcode
+pythontex-files-*/
+
+# Texpad
+.texpadtmp
+
+# TikZ & PGF
+*.dpth
+*.md5
+*.auxlock
+
+# todonotes
+*.tdo
+
+# xindy
+*.xdy
+
+# xypic precompiled matrices
+*.xyc
+
+# WinEdt
+*.bak
+*.sav
+
+# endfloat
+*.ttt
+*.fff
+
+# Latexian
+TSWLatexianTemp*
+
+# OS X cruft
+.DS_Store
+
+# The paper build
+paper/*.pdf
