@@ -14,6 +14,17 @@
 \usepackage{ismir,amsmath,cite,url}
 \usepackage{graphicx}
 \usepackage{color}
+\usepackage{cleveref}
+\usepackage{graphicx}
+\usepackage{color}
+\graphicspath{{figs/}}
+\usepackage{booktabs}
+\usepackage[inline]{enumitem}
+
+\def\eg{\emph{e.g.\/}}
+\def\ie{\emph{i.e.\/}}
+\def\etc{\emph{etc.\/}}
+\def\etal{\emph{et al.\/}}
 
 
 % Title.
@@ -100,7 +111,7 @@ Investigating data augmentation
 
 % 2015 - four timely lessons
 
-% 2013 - TMC (157)
+% 2014 - TMC (157)
 
 % 2012 - HPA (bass tracking)
 
@@ -168,8 +179,15 @@ Investigating data augmentation
 
 \subsection{Biased sampling}
 
+The observed frequency of each chord or quality class can have a detrimental influence on model performance.
+Some qualities are naturally more common than others, \eg, \texttt{G:maj} compared to \texttt{Eb:minmaj7}, and the relative scarcity of uncommon chords within a small and biased training sample can make rare classes difficult to model properly.
+% TODO: include a figure of the distribution of chord qualities
+
+
 % EJH used importance weighting per class
-\cite{ejh2015four}
+To circumvent this issue during training, Humphrey and Bello~\cite{humphrey2015four} used a uniform sampling strategy across chord qualities, and scaled the resulting likelihoods to directly model the natural class bias.
+While this strategy is appropriate for independent observations, or approximately independent observations covered by short sample patches, it is difficult to incorporate when modeling long observation sequences that switch between many chord classes.
+
 
 % we do it per track x
 %   w(x) = 1/p^(x)
@@ -179,6 +197,16 @@ Investigating data augmentation
 %   basically weighting by perplexity compared to the background distribution
 %
 % note: p(y) looks only at quality (after simplification), not root
+As an alternative to uniform sampling, we employ a hierarchical sampling strategy.
+We first estimate the distribution $P[Y]$ of all chord qualities $Y$ in the training set.
+Next, we estimate the ``average'' quality frequency for a track $X$ by the geometric mean of its label probabilities:
+\begin{equation}
+    \hat{F}(X) := \sqrt[T]{\prod_{t=1}^{T} P[Y(X, t)]},
+\end{equation}
+where $T$ is the duration of $X$ and $Y(X, t)$ is the label of frame $t$ within $X$.
+Intuitively, $F(X)$ will be large if it consists primarily of common labels, and small if it contains many rare labels.
+To generate patches during training, we first select a track $X$ in proportion to $1/F(X)$, and then select a patch uniformly at random from within the selected track.
+This ensures that rare classes are observed during training, but does not skew the distribution of the distribution of dynamics conditional on an observed sequence.
 
 \subsection{Data augmentation}
 
@@ -208,6 +236,7 @@ Each track was represented as a log-power constant-Q spectrogram with 36 bins pe
 %   sr=44100, hop = 4096 => ~96ms frame rate
 Signals were analyzed at 44.1KHz with a hop length of 4096 samples, resulting in a frame rate of approximately 10.8Hz.
 
+\subsection{Training}
 % training setup
 All models are trained on 8-second patches (86 frames), though the models directly generalize to arbitrarily long inputs.
 %   8sec patches (83 frames)
