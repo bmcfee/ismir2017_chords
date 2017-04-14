@@ -197,34 +197,42 @@ Investigating data augmentation
 %   1217, using the same 5-fold CV splits for comparison purposes
 %   each training fold is split 75/25 for validation
 %   training set => 12x by data augmentation
-\cite{humphrey2015four}
+For evaluation, we used the dataset described by Humphrey and Bello~\cite{humphrey2015four}, which includes 1217 tracks from the Isophonics, Billboard, RWC Pop, and MARL collections.
+To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly split each training set 75/25 for validation.
 
 % features
 %   librosa 0.5
-\cite{librosa050}
+Feature extraction was performed with librosa 0.5.0~\cite{librosa050}.
 %   log cqt power, 36bpo, (C1 - C7) (260 bins)
+Each track was represented as a log-power constant-Q spectrogram with 36 bins per octave, spanning 6 octaves starting at C1.
 %   sr=44100, hop = 4096 => ~96ms frame rate
+Signals were analyzed at 44.1KHz with a hop length of 4096 samples, resulting in a frame rate of approximately 10.8Hz.
 
 % training setup
+All models are trained on 8-second patches (86 frames), though the models directly generalize to arbitrarily long inputs.
 %   8sec patches (83 frames)
 %   32 patches per batch
 %   512 batches per epoch
+Models are trained using mini-batches of 32 patches per batch, and 512 batches per epoch.
 %   ADAM optimization
-\cite{kingma2014adam}
-%   Keras + tensorflow
-\cite{chollet2015keras, tensorflow2015-whitepaper}
+We use the ADAM optimizer~\cite{kingma2014adam}, and reduce the learning rate if there is no improvement in validation score after 10 epochs.
+Training is stopped early if there is no improvement in validation score after 20 epochs, and limited to a maximum of 100 epochs total.
+For all models, validation score is determined only by decoder loss (cross-entropy).
 
 %   validation by decoder loss
 %   learning rate reduction after 10 epochs
 %   early stopping after 20 epochs
 %   maximum 100 epochs
 
+%   Keras + tensorflow
+All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.
+Source code and pre-trained model parameters for our experiments will be made available upon publication.
 
 \subsection{Results}
 
 \section{Discussion}
 
-\section*{Acknowledgments}
+%\section*{Acknowledgments}
 
 % For bibtex users:
 \bibliography{refs}
