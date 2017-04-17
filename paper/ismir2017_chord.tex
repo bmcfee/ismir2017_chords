@@ -108,12 +108,18 @@ Investigating data augmentation
 \section{Related work}
 
 % 2016 - idealized chroma prediction
-
-% 2015 - four timely lessons
+\cite{korzeniowski2016feature} % idealized chroma -> logistic regression on small vocab
 
 % 2014 - TMC (157)
+\cite{cho2014improved} % k-stream HMM is a similar deal
+
+% 2015 - four timely lessons
+\cite{humphrey2015four}
+
 
 % 2012 - HPA (bass tracking)
+\cite{ni2012end} % HPA did bass tracking
+
 
 \section{Methods}
 
@@ -129,19 +135,31 @@ Investigating data augmentation
 
 \subsection{Encoder-decoder model}
 
+
+The first chord recognition model uses a convolutional encoder, recurrent decoder architecture, as depicted in Figure~\ref{fig:model}. % FIXME citation needed
+\begin{figure*}
+    \caption{Illustration of model architectures goes here.\label{fig:model}}
+\end{figure*}
+Input audio is represented as a $T\times F$ time-series of log-power constant-Q spectra (for $T$ frames and $F$ frequency bands).
+After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single $5\times5$ filter, followed by a bank of $1\times F$ (full frequency range) convolutional filters, resulting in a $T\times 36$ feature encoding.
+
+The convolutional feature encoding is mapped into a bi-directional gated recurrent unit (GRU) layer~\cite{chung2014empirical} with hidden state vectors of 128 dimensions in each direction (256 total).
+This layer integrates over the entirety of the input signal, and provides smoothing and context for the encoded feature representation.
+
+Finally, the hidden state vector $h(t)$ at frame $t$ is decoded to the class label at time $t$ by a sigmoid layer, which produces a likelihood score $\hat{p}_y(t) \in [0, 1]^{V}$ over the chord vocabulary of $V$ symbols.
+
+
 % Figure for the basic model
 
 % conv encoder, recurrent decoder model
 
 % batch-norm on the cqt for standardization
-\cite{ioffe2015batch}
 
 % first filter = transient suppressor / local salience
 
 % 3*12 full-height convolutional filters
 
 % bidirectional recurrent model (GRU), d=128 in each direction
-\cite{chung2014empirical}
 
 % logistic to output vocabulary
 
@@ -162,7 +180,29 @@ Investigating data augmentation
 %   5. resulting vocab = 12 * 14 + 2 = 170 classes
 %
 
-\cite{raffel2014mir_eval}
+To train the decoder module, we map all labels in the training set to a finite vocabulary by the following procedure.
+First, suppressed or extra notes are discarded, \eg:
+\begin{align*}
+    \texttt{D}\flat\texttt{:maj(*5,9)/3} &\mapsto \texttt{D}\flat\texttt{:maj/3}.
+\end{align*}
+Inversions are then discarded, \eg:
+\begin{align*}
+    \texttt{D}\flat\texttt{:maj/3} &\mapsto \texttt{D}\flat\texttt{:maj}.
+\end{align*}
+Next, labels are decomposed into \emph{root} and \emph{pitch classes} (relative to the root) using the encoding functionality provided by \texttt{mir\_eval}~\cite{raffel2014mir_eval}, \eg:
+\begin{align*}
+    \texttt{D}\flat\texttt{:maj} &\mapsto \begin{cases}
+        1 & \text{root}\\
+        (0, 4, 7) & \text{pitch classes}
+    \end{cases}.
+\end{align*}
+The set of active pitch classes is matched against a set of 13 templates for the qualities: \emph{maj, min, dim, aug, min6, maj6, min7, maj7, dom7, hdim7, minmaj7, sus2, sus4}.
+If the pitch class set does not match one of the templates, it is mapped to the unknown chord symbol \emph{X}; the no-chord symbol is represented distinctly as \emph{N}.
+Otherwise, the matched template name is combined with the root and mapped to a canonical string which resolves enharmonic equivalences in favor of sharps:
+\begin{align*}
+    \left(1, (0, 4, 7) \right) &\mapsto \texttt{C}\sharp\texttt{:maj}.
+\end{align*}
+The final vocabulary contains 170 classes: 2 special symbols (\emph{N, X}), and $12\times13=168$ combinations of root and quality.
 
 
 \subsection{Structured training}
@@ -172,41 +212,9 @@ Investigating data augmentation
 % Note: for structured training, no simplification is performed
 %       so that the model can still learn to map power chords to major, for example
 %       but the decoder component is still trained to map to the constrained vocab
-
-\cite{ni2012end} % HPA did bass tracking
-\cite{cho2014improved} % k-stream HMM is a similar deal
-\cite{korzeniowski2016feature} % idealized chroma -> logistic regression on small vocab
-
-\subsection{Biased sampling}
-
-The observed frequency of each chord or quality class can have a detrimental influence on model performance.
-Some qualities are naturally more common than others, \eg, \texttt{G:maj} compared to \texttt{Eb:minmaj7}, and the relative scarcity of uncommon chords within a small and biased training sample can make rare classes difficult to model properly.
-% TODO: include a figure of the distribution of chord qualities
-
-
-% EJH used importance weighting per class
-To circumvent this issue during training, Humphrey and Bello~\cite{humphrey2015four} used a uniform sampling strategy across chord qualities, and scaled the resulting likelihoods to directly model the natural class bias.
-While this strategy is appropriate for independent observations, or approximately independent observations covered by short sample patches, it is difficult to incorporate when modeling long observation sequences that switch between many chord classes.
-
-
-% we do it per track x
-%   w(x) = 1/p^(x)
-%   p^(x) := gmean_t p(y_t | x) = avg. probability of labels within the track
-% sample patches uniformly from within tracks
-% idea: down-weight tracks with low-entropy (compared to the corpus)
-%   basically weighting by perplexity compared to the background distribution
-%
-% note: p(y) looks only at quality (after simplification), not root
-As an alternative to uniform sampling, we employ a hierarchical sampling strategy.
-We first estimate the distribution $P[Y]$ of all chord qualities $Y$ in the training set.
-Next, we estimate the ``average'' quality frequency for a track $X$ by the geometric mean of its label probabilities:
-\begin{equation}
-    \hat{F}(X) := \sqrt[T]{\prod_{t=1}^{T} P[Y(X, t)]},
-\end{equation}
-where $T$ is the duration of $X$ and $Y(X, t)$ is the label of frame $t$ within $X$.
-Intuitively, $F(X)$ will be large if it consists primarily of common labels, and small if it contains many rare labels.
-To generate patches during training, we first select a track $X$ in proportion to $1/F(X)$, and then select a patch uniformly at random from within the selected track.
-This ensures that rare classes are observed during training, but does not skew the distribution of the distribution of dynamics conditional on an observed sequence.
+%       even for chords that are out of vocab, we can still learn from their encoded representation 
+%       and map them onto to a plausible output
+%       
 
 \subsection{Data augmentation}
 
@@ -214,31 +222,35 @@ This ensures that rare classes are observed during training, but does not skew t
 %   training set is augmented with pitch shifts of +- n semitones for n in {1,2,\dots, 6}
 %   muda does annotation deformation as well
 % all augmentations of a track get the same importance weight
+To increase training set variability, we apply pitch-shifting data augmentation using MUDA~\cite{mcfee2015software}.
+For each training example, 12 deformations are generated by shifting up or down up to 6 semitones.
+Testing and validation examples are not augmented.
+This provides a brute-force, approximate root invariance to the model, since each observation exists in all twelve root classes, and also helps reduce sensitivity of the model to tuning deviations.
 
-\cite{mcfee2015software}
 
 \section{Evaluation}
-
-\subsection{Data}
 
 % cite: ejh2015
 %   1217, using the same 5-fold CV splits for comparison purposes
 %   each training fold is split 75/25 for validation
 %   training set => 12x by data augmentation
 For evaluation, we used the dataset described by Humphrey and Bello~\cite{humphrey2015four}, which includes 1217 tracks from the Isophonics, Billboard, RWC Pop, and MARL collections.
-To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly split each training set 75/25 for validation.
+To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly hold out 1/4 of each training set for validation and hyper-parameter optimization.
+
+\subsection{Pre-processing}
 
 % features
 %   librosa 0.5
 Feature extraction was performed with librosa 0.5.0~\cite{librosa050}.
 %   log cqt power, 36bpo, (C1 - C7) (260 bins)
-Each track was represented as a log-power constant-Q spectrogram with 36 bins per octave, spanning 6 octaves starting at C1.
+Each track was represented as a log-power constant-Q spectrogram with 36 bins per octave, spanning 6 octaves starting at C1, and clipped at 80dB below the peak power for the entire track.
 %   sr=44100, hop = 4096 => ~96ms frame rate
 Signals were analyzed at 44.1KHz with a hop length of 4096 samples, resulting in a frame rate of approximately 10.8Hz.
 
 \subsection{Training}
 % training setup
 All models are trained on 8-second patches (86 frames), though the models directly generalize to arbitrarily long inputs.
+For tracks with multiple reference annotations, the output is selected uniformly at random from all references for each patch.
 %   8sec patches (83 frames)
 %   32 patches per batch
 %   512 batches per epoch
