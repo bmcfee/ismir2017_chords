@@ -107,19 +107,24 @@ Investigating data augmentation
 %
 \section{Related work}
 
-% 2016 - idealized chroma prediction
+% 2016 - idealized chroma prediction, 25-class
 \cite{korzeniowski2016feature} % idealized chroma -> logistic regression on small vocab
+
+% 2015 - sigtia, RNN, 25-class
+\cite{sigtia2015audio}
 
 % 2014 - TMC (157)
 \cite{cho2014improved} % k-stream HMM is a similar deal
 
-% 2015 - four timely lessons
+% 2015 - four timely lessons (157)
 \cite{humphrey2015four}
 
 
-% 2012 - HPA (bass tracking)
+% 2012 - HPA (bass tracking), 25-class, 121-class
 \cite{ni2012end} % HPA did bass tracking
 
+% 2010 - chordino, 159 but not quite the same
+\cite{mauchsimple}
 
 \section{Methods}
 
@@ -133,7 +138,11 @@ Investigating data augmentation
 
 %% or by first estimating (root, pitch classes, bass)
 
-\subsection{Encoder-decoder model}
+This section outlines the data preparation, architectures, and training strategies for the models under comparison.
+We consider three independent design choices: one or two recurrent layers, the presence or absence of data augmentation, and the presence or absence of structured output training.
+This results in eight model configurations, which are evaluated in the subsequent section.
+
+\subsection{Encoder-decoder models}
 
 
 The first chord recognition model uses a convolutional encoder, recurrent decoder architecture, as depicted in Figure~\ref{fig:model}. % FIXME citation needed
@@ -142,11 +151,24 @@ The first chord recognition model uses a convolutional encoder, recurrent decode
 \end{figure*}
 Input audio is represented as a $T\times F$ time-series of log-power constant-Q spectra (for $T$ frames and $F$ frequency bands).
 After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single $5\times5$ filter, followed by a bank of $1\times F$ (full frequency range) convolutional filters, resulting in a $T\times 36$ feature encoding.
+Both layers use rectified linear activations.
+The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to produce a filter which suppresses transients and vibrato while retaining sustained tones.
+In preliminary experiments, we found that a single filter in the first layer was sufficient.
+The second layer can be interpreted as a set of pitch class detectors, and we set the number of filters to allow 3 for each distinct pitch class.
+The output of the second layer constitutes a convolutional encoding of the pitch class content for each input frame.
 
-The convolutional feature encoding is mapped into a bi-directional gated recurrent unit (GRU) layer~\cite{chung2014empirical} with hidden state vectors of 128 dimensions in each direction (256 total).
-This layer integrates over the entirety of the input signal, and provides smoothing and context for the encoded feature representation.
+% TODO: refer to figure illustrating model parameters and/or activations
 
-Finally, the hidden state vector $h(t)$ at frame $t$ is decoded to the class label at time $t$ by a sigmoid layer, which produces a likelihood score $\hat{p}_y(t) \in [0, 1]^{V}$ over the chord vocabulary of $V$ symbols.
+
+The convolutional feature encoding is mapped into either one or two layers of bi-directional gated recurrent units (GRUs)~\cite{cho2014learning}.
+The GRU model is functionally similar to the commonly used long-short-term memory (LSTM) model~\cite{hochreiter1997long}, but has fewer parameters and often performs comparably in practice~\cite{jozefowicz2015empirical}.
+The bi-directional variant consists of two independent recurrent models, one running in each direction, whose hidden state vectors are concatenated to produce the bi-directional hidden state vector $h(t)$ at frame $t$.
+This layer integrates over the entirety of the input signal, and provides temporal smoothing and context for the encoded feature representation.
+In the one-layer configuration (denoted as \emph{CRNN1}), the hidden state vector has total dimension 512 (256 for each direction).
+In the two-layer configuration (denoted as \emph{CRNN2}), both layers have total hidden state dimensions 256, and the hidden state of the first layer serves as input to the second layer.
+
+
+Finally, the hidden state vector $h(t)$ is decoded to the class label by a sigmoid layer, which produces a likelihood score $\hat{p}_y(t) \in [0, 1]^{V}$ over the chord vocabulary of $V$ symbols.
 
 
 % Figure for the basic model
