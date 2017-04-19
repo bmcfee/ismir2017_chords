@@ -141,21 +141,21 @@ This results in eight model configurations, which are evaluated in the subsequen
 \subsection{Encoder-decoder models}
 
 
-The first chord recognition model uses a convolutional encoder, recurrent decoder architecture, as depicted in Figure~\ref{fig:model}. % FIXME citation needed
-\begin{figure}
-    \centering
-    \includegraphics[width=0.95\columnwidth]{crnn1}
-    \caption{Illustration of model architectures goes here.\label{fig:model}}
-\end{figure}
+The first chord recognition model uses a convolutional encoder, recurrent decoder architecture, as depicted in Figure~\ref{fig:crnn1}.
 Input audio is represented as a $T\times F$ time-series of log-power constant-Q spectra (for $T$ frames and $F$ frequency bands).
-After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single $5\times5$ filter, followed by a bank of $1\times F$ (full frequency range) convolutional filters, resulting in a $T\times 36$ feature encoding.
+After batch normalization~\cite{ioffe2015batch} (not pictured), the first convolutional layer consists of a single $5\times5$ filter, followed by a bank of $1\times F$ (full frequency range) convolutional filters, resulting in a $T\times 36$ feature encoding.
 Both layers use rectified linear activations.
 The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to produce a filter which suppresses transients and vibrato while retaining sustained tones.
 In preliminary experiments, we found that a single filter in the first layer was sufficient.
 The second layer can be interpreted as a set of pitch class detectors, and we set the number of filters to allow 3 for each distinct pitch class.
 The output of the second layer constitutes a convolutional encoding of the pitch class content for each input frame.
 
-% TODO: refer to figure illustrating model parameters and/or activations
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{crnn1}
+    \caption{The basic convolutional encoder, recurrent decoder network, denoted as \emph{CRNN1} throughout this paper.
+            Each CQT frame is first filtered by a single $5\times 5$ two-dimensional convolutional filter, and then encoded as a set of 36 full-frequency convolutional filter activations.  The bi-directional recurrent decoder integrates information across the entire observation as a time-series of 512-dimensional hidden state vectors.  Each hidden state vector is independently decoded to its most likely chord label.\label{fig:crnn1}}
+\end{figure}
 
 
 The convolutional feature encoding is mapped into either one or two layers of bi-directional gated recurrent units (GRUs)~\cite{cho2014learning}.
@@ -202,7 +202,7 @@ At each frame, the maximum likelihood label is selected, and the time-series of 
 %   5. resulting vocab = 12 * 14 + 2 = 170 classes
 %
 
-To train the decoder module, we map all labels in the training set to a finite vocabulary by the following procedure.
+To formulate chord recognition as a classification task, we define mapping of all valid chords to a finite vocabulary by the following procedure.\footnote{Here, a \emph{valid chord} is a string belonging to the formal language specification of Harte~\emph{et al.}~\cite{harte2005symbolic}, or the extension provided by the JAMS library~\cite{humphrey2014jams}.}
 First, suppressed or extra notes are discarded, \eg:
 \begin{align*}
     \texttt{D}\flat\texttt{:maj(*5,9)/3} &\mapsto \texttt{D}\flat\texttt{:maj/3}.
@@ -238,19 +238,31 @@ The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), an
 %       and map them onto to a plausible output
 %       
 
-The direct model described above maps a hidden state vector $h(t)$ directly to a fixed vocabulary produced by the chord simplification strategy described in \cref{sec:vocab}, and is optimized by a na\"{\i}ve multi-class classification loss.
-This approach has two clear drawbacks.
-First, it does not account for the structure of chord space: for example, if the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj} or \texttt{N}, even though it is far less severe of a mistake.
-Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
-These effects combine to make modeling difficult, especially for rare classes.
+The CRNN models described above map each hidden state vector to a fixed vocabulary produced by the chord simplification strategy described in \cref{sec:vocab}.
+They can be optimized in the usual way by minimizing a multi-class classification loss (cross-entropy), but this approach has two clear drawbacks.
+First, it does not leverage the structure of chord space: for example, if the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj} or \texttt{N}, even though it is far less severe of a mistake.
+Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes, which can render certain chords ambiguous, such as power chords like \texttt{A:maj(*3)}$\mapsto$\texttt{A:maj}.
+These effects combine to inhibit the model's ability to capture certain classes.
 
-To counteract these effects, we introduce a structured representation to the decoder component of the model.
-We observe that the standard evaluation criteria for chord recognition operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass}), as described in \cref{sec:vocab}~\cite{raffel2014mir_eval}.
-This representation can be predicted directly by the model, and used either as direct output, or as an intermediate representation prior to decoding into the fixed vocabulary.
+To counteract these effects, we introduce a structured representation to the decoder component of the model, depicted in \cref{fig:crnn2}.
+The standard evaluation criteria for chord recognition operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass}), as described in \cref{sec:vocab}~\cite{raffel2014mir_eval}.
+This representation can be predicted directly by the model, and used either as direct output, or as an intermediate representation prior to predicting the chord label.
 
-The structured models (denoted as \emph{CRNN1/2+S}) predict for each frame $t$ the root note (\texttt{A}--\texttt{G}$\sharp$, plus \texttt{N} for no-root), the bass note, and the active pitch classes from the hidden state vector $h(t)$.
-Root and bass estimation use a soft-max non-linearity because the outputs are mutually exclusive (multi-class), while pitch class prediction uses a logistic non-linearity.
-These three layers are concatenated, along with the hidden state itself, to produce the structured representation $s(t)$, from which the chord label is predicted.
+The structured models (denoted as \emph{CRNN1/2+S}) predict for each frame $t$ the root pitch class (\texttt{A}--\texttt{G}$\sharp$, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
+Root and bass estimation use a soft-max non-linearity because the outputs are mutually exclusive (multi-class).
+Pitch class prediction uses a logistic non-linearity, and results in a chroma-like representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}.
+These three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{crnn2}
+    \caption{The structured convolutional encoder, recurrent decoder network, denoted as \emph{CRNN2+S}.
+    The encoder uses the same architecture depicted in \cref{fig:crnn2}.
+    The deep decoder (\emph{CRNN2}) uses two bi-directional recurrent decoders to integrate information across time.
+    The structured model (\emph{CRNN2+S}) predicts the active pitch classes, root, and bass from the second recurrent layer's hidden state.
+    The hidden state, root, pitch classes, and bass predictions are then concatenated and used as inputs to the chord prediction layer.\label{fig:crnn2}}
+\end{figure}
+
 
 During training, the structured models are provided with both the simplified chord tag, and the structured representation of the original (non-simplified) chord, and minimize the sum of losses across all outputs.
 In this way, the model can both leverage the structure of the output space, and learn to be robust to errors or ambiguities in the vocabulary simplification process.
@@ -310,6 +322,7 @@ All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015k
 
 \subsection{Results}
 
+The main results of the evaluation are listed in \cref{fig:results}, which illustrates the median scores achieved by each model across all test tracks.\footnote{The trends for the mean scores are qualitatively similar. We report the median here for robustness to errors in the reference annotations reported by Humphrey and Bello~\cite{humphrey2015four}.}
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.9\textwidth]{crnn-scores}
