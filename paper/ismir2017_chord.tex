@@ -96,13 +96,9 @@ The abstract should be placed at the top left column and should contain about 15
 
 \subsection{Our contributions}
 
-Training from structured representations
-
-Deep recurrent chord model
-
-Sampling strategy for training
-
-Investigating data augmentation
+In this work, we apply convolutional-recurrent neural networks to the problem of large-vocabulary chord recognition.
+To exploit similarity between target chord classes, we introduce a structured representation of chord roots and quality into the model, which informs the chord tag prediction components.
+Evaluation on a large collection of annotated music demonstrates that the proposed methods significantly improve upon prior work in modeling rare classes, while not sacrificing accuracy for common classes.
 
 %
 \section{Related work}
@@ -146,9 +142,11 @@ This results in eight model configurations, which are evaluated in the subsequen
 
 
 The first chord recognition model uses a convolutional encoder, recurrent decoder architecture, as depicted in Figure~\ref{fig:model}. % FIXME citation needed
-\begin{figure*}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\columnwidth]{crnn1}
     \caption{Illustration of model architectures goes here.\label{fig:model}}
-\end{figure*}
+\end{figure}
 Input audio is represented as a $T\times F$ time-series of log-power constant-Q spectra (for $T$ frames and $F$ frequency bands).
 After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single $5\times5$ filter, followed by a bank of $1\times F$ (full frequency range) convolutional filters, resulting in a $T\times 36$ feature encoding.
 Both layers use rectified linear activations.
@@ -168,7 +166,8 @@ In the one-layer configuration (denoted as \emph{CRNN1}), the hidden state vecto
 In the two-layer configuration (denoted as \emph{CRNN2}), both layers have total hidden state dimensions 256, and the hidden state of the first layer serves as input to the second layer.
 
 
-Finally, the hidden state vector $h(t)$ is decoded to the class label by a sigmoid layer, which produces a likelihood score $\hat{p}_y(t) \in [0, 1]^{V}$ over the chord vocabulary of $V$ symbols.
+Finally, the hidden state vector $h(t)$ is decoded to the class label by a sigmoid layer, which produces a likelihood score $\hat{y}(t) \in [0, 1]^{V}$ over the chord vocabulary of $V$ symbols.
+At each frame, the maximum likelihood label is selected, and the time-series of chord labels is run-length encoded to form the estimated annotation for the track.
 
 
 % Figure for the basic model
@@ -188,6 +187,7 @@ Finally, the hidden state vector $h(t)$ is decoded to the class label by a sigmo
 
 \subsection{Chord vocabulary}
 
+\label{sec:vocab}
 % For training the tag decoder, we map to a fixed vocabulary
 %   1. discard missing / extra notes
 %   2. discard inversions
@@ -218,13 +218,13 @@ Next, labels are decomposed into \emph{root} and \emph{pitch classes} (relative 
         (0, 4, 7) & \text{pitch classes}
     \end{cases}.
 \end{align*}
-The set of active pitch classes is matched against a set of 13 templates for the qualities: \emph{maj, min, dim, aug, min6, maj6, min7, maj7, dom7, hdim7, minmaj7, sus2, sus4}.
-If the pitch class set does not match one of the templates, it is mapped to the unknown chord symbol \emph{X}; the no-chord symbol is represented distinctly as \emph{N}.
-Otherwise, the matched template name is combined with the root and mapped to a canonical string which resolves enharmonic equivalences in favor of sharps:
+The set of active pitch classes is matched against a set of 13 templates: \texttt{maj, min, dim, aug, min6, maj6, min7, maj7, dom7, hdim7, minmaj7, sus2, sus4}.
+The root and matched template are combined, and mapped to a canonical form to resolve enharmonic equivalences:
 \begin{align*}
     \left(1, (0, 4, 7) \right) &\mapsto \texttt{C}\sharp\texttt{:maj}.
 \end{align*}
-The final vocabulary contains 170 classes: 2 special symbols (\emph{N, X}), and $12\times13=168$ combinations of root and quality.
+If the pitch class set does not match one of the templates, it is mapped to the unknown chord symbol \texttt{X}; the no-chord symbol is represented distinctly as \texttt{N}.
+The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), and $12\times13=168$ combinations of root and quality.
 
 
 \subsection{Structured training}
@@ -238,6 +238,24 @@ The final vocabulary contains 170 classes: 2 special symbols (\emph{N, X}), and 
 %       and map them onto to a plausible output
 %       
 
+The direct model described above maps a hidden state vector $h(t)$ directly to a fixed vocabulary produced by the chord simplification strategy described in \cref{sec:vocab}, and is optimized by a na\"{\i}ve multi-class classification loss.
+This approach has two clear drawbacks.
+First, it does not account for the structure of chord space: for example, if the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj} or \texttt{N}, even though it is far less severe of a mistake.
+Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
+These effects combine to make modeling difficult, especially for rare classes.
+
+To counteract these effects, we introduce a structured representation to the decoder component of the model.
+We observe that the standard evaluation criteria for chord recognition operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass}), as described in \cref{sec:vocab}~\cite{raffel2014mir_eval}.
+This representation can be predicted directly by the model, and used either as direct output, or as an intermediate representation prior to decoding into the fixed vocabulary.
+
+The structured models (denoted as \emph{CRNN1/2+S}) predict for each frame $t$ the root note (\texttt{A}--\texttt{G}$\sharp$, plus \texttt{N} for no-root), the bass note, and the active pitch classes from the hidden state vector $h(t)$.
+Root and bass estimation use a soft-max non-linearity because the outputs are mutually exclusive (multi-class), while pitch class prediction uses a logistic non-linearity.
+These three layers are concatenated, along with the hidden state itself, to produce the structured representation $s(t)$, from which the chord label is predicted.
+
+During training, the structured models are provided with both the simplified chord tag, and the structured representation of the original (non-simplified) chord, and minimize the sum of losses across all outputs.
+In this way, the model can both leverage the structure of the output space, and learn to be robust to errors or ambiguities in the vocabulary simplification process.
+
+
 \subsection{Data augmentation}
 
 % MUDA
@@ -245,9 +263,9 @@ The final vocabulary contains 170 classes: 2 special symbols (\emph{N, X}), and 
 %   muda does annotation deformation as well
 % all augmentations of a track get the same importance weight
 To increase training set variability, we apply pitch-shifting data augmentation using MUDA~\cite{mcfee2015software}.
-For each training example, 12 deformations are generated by shifting up or down up to 6 semitones.
+For each training example, 12 deformations are generated by shifting up or down by between 1--6 semitones.
 Testing and validation examples are not augmented.
-This provides a brute-force, approximate root invariance to the model, since each observation exists in all twelve root classes, and also helps reduce sensitivity of the model to tuning deviations.
+Because since each observation exists in all twelve root classes, this provides a brute-force, approximate root invariance to the model.
 
 
 \section{Evaluation}
@@ -257,7 +275,7 @@ This provides a brute-force, approximate root invariance to the model, since eac
 %   each training fold is split 75/25 for validation
 %   training set => 12x by data augmentation
 For evaluation, we used the dataset described by Humphrey and Bello~\cite{humphrey2015four}, which includes 1217 tracks from the Isophonics, Billboard, RWC Pop, and MARL collections.
-To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly hold out 1/4 of each training set for validation and hyper-parameter optimization.
+To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly hold out 1/4 of each training set for validation.
 
 \subsection{Pre-processing}
 
@@ -288,8 +306,7 @@ For all models, validation score is determined only by decoder loss (cross-entro
 %   maximum 100 epochs
 
 %   Keras + tensorflow
-All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.
-Source code and pre-trained model parameters for our experiments will be made available upon publication.
+All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.\footnote{Source code and pre-trained model parameters for our experiments will be made available upon publication.}
 
 \subsection{Results}
 
@@ -300,6 +317,11 @@ Source code and pre-trained model parameters for our experiments will be made av
         \emph{KHMM} denotes the K-stream HMM of Cho~\cite{cho2014improved}; \emph{DNN} denotes a convolutional network of Humphrey and Bello~\cite{humphrey2015four}.\label{fig:results}}
 \end{figure*}
 \section{Discussion}
+
+% TODO:
+%   feature visualization, analysis
+%   error analysis
+%   future work
 
 %\section*{Acknowledgments}
 
