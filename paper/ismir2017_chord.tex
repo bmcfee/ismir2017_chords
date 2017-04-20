@@ -84,13 +84,13 @@
 \maketitle
 %
 \begin{abstract}
-% Chord recognition is hard in large vocabularies
-% existing systems do not directly benefit from the similarity between complex chords
-% we develop an end-to-end learning system using deep recurrent networks
-% the machine is designed to learn both the mapping to a large chord vocabulary,
-% and a structured representation of chords as root, bass, and active pitch classes.
-% we evaluate the system on a collection of 1217 annotated recordings, and show
-% substantial improvements in accuracy over previous methods.
+Automatic chord recognition systems operating in the large-vocabulary regime must overcome data scarcity: certain classes occur much less frequently than others, and this presents a significant challenge when estimating model parameters.
+While most systems model the chord recognition task as a (multi-class) classification problem, few attempts have been made to directly exploit the intrinsic structural similarities between chord classes.
+
+In this work, we develop a deep convolutional-recurrent model for automatic chord recognition over a vocabulary of 170 classes.
+To exploit structural relationships between chord classes, the model is trained to produce both the time-varying chord label sequence as well as binary encodings of chord roots and qualities.
+This binary encoding directly exposes similarities between related classes, allowing the model to learn a more coherent representation of acoustic harmony.
+Evaluations on a corpus of 1217 annotated recordings demonstrate substantial improvements compared to previous models.
 \end{abstract}
 %
 \section{Introduction}\label{sec:introduction}
@@ -105,8 +105,8 @@
 
 \subsection{Our contributions}
 
-In this work, we develop convolutional-recurrent neural networks for large-vocabulary chord recognition.
-To exploit similarity between target chord classes, we introduce a structured representation of chords to the model, which influences the intermediate representation and informs the output label predictor.
+We develop convolutional-recurrent neural networks for large-vocabulary chord recognition.
+To exploit similarity between target chord classes, we introduce a structured representation which influences the intermediate representation and informs the output label predictor.
 By combining deep, recurrent networks with structured representation learning, the proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models.
 
 %
@@ -336,8 +336,9 @@ This representation can be predicted directly by the model, and used either as d
 %   this is explicitly integrated in our model
 
 The structured models (denoted as \emph{CR1/2+S}) predict for each frame $t$ the root pitch class (\texttt{C}--\texttt{B}, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
-Root and bass estimation use a soft-max non-linearity because the outputs are mutually exclusive (multi-class).
-Pitch class prediction uses a logistic non-linearity, and results in a chroma-like representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}.
+Root and bass estimation are modeled as a multi-class prediction with a soft-max non-linearity.
+Pitch class prediction is modeled as a multi-label prediction, and uses a logistic (sigmoid) non-linearity.
+This results in an idealized chroma representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}, but predicted from the hidden state of an RNN rather than a spectrogram patch.
 These three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
 
 \begin{figure}
@@ -353,6 +354,7 @@ These three layers are concatenated, along with the hidden state itself, to prod
 
 During training, the structured models are provided with both the simplified chord tag, and the structured representation of the original (non-simplified) chord, and minimize the sum of losses across all outputs.
 In this way, the model can both leverage the structure of the output space, and learn to be robust to errors or ambiguities in the vocabulary simplification process.
+
 
 
 \subsection{Data augmentation}
@@ -417,15 +419,15 @@ The main results of the evaluation are listed in \cref{fig:results}, which illus
     \caption{Weighted recall scores for all methods under comparison.  Each point represents the median score across all test points, with error bars covering the 95\% confidence interval estimated by bootstrap sampling.
         \emph{KHMM} denotes the K-stream HMM of Cho~\cite{cho2014improved}; \emph{DNN} denotes the convolutional network of Humphrey and Bello~\cite{humphrey2015four}.\label{fig:results}}
 \end{figure*}
-Each subplot reports the recall computed by \texttt{mir\_eval} of correctly estimating the following properties:
+Each subplot reports the recall computed by \texttt{mir\_eval} of correctly estimating the following:
 \begin{itemize}
-    \item root,
-    \item third (root+third),
-    \item triad (root+third+fifth),
-    \item tetrad (all intervals),
-    \item sevenths, 
-    \item major-minor (25 classes: 12 major, 12 minor, and \texttt{N}), and
-    \item MIREX (at least three notes correct).
+    \item \emph{root};
+    \item \emph{thirds}: root and third;
+    \item \emph{triads}: root, third, and fifth;
+    \item \emph{sevenths}: root, third, fifth, and seventh;
+    \item \emph{tetrads}: all intervals;
+    \item \emph{maj-min}: 12 major, 12 minor, and \texttt{N} class; and
+    \item \emph{MIREX}: at least three correct notes.
 \end{itemize}
 
 From \cref{fig:results}, several trends can be observed.
@@ -434,7 +436,16 @@ Second, structured training generally provides a modest improvement, and it seem
 This also should be expected, as structured training specifically forces the model to estimate the root independently of quality.
 
 % FIXME: verify this after all the numbers are in
-Interestingly, the deep decoder model (CR2) only outperforms the shallow decoder (CR1) when using structured training.
+Interestingly, the deep decoder model (CR2) only improves over the shallow decoder (CR1) when using structured training.
+% XXX: Speculation
+%   I think this is because without structured training, rare chords look like noise compared to common chords
+%   this can throw off the sequencing
+%   OTOH, if you have a structured representation, rare chords (eg, dim7) can be related to related chords (eg, dim)
+%   TODO: --> find examples of this happening
+%   we'd expect this to hurt most in rare classes, so this generally makes sense given the results
+%       what's going on with the boost in maj-min though?
+%   TODO: --> figure out which classes we mess up the most
+%           --> build a 170x170 confusion matrix
 
 Finally, all variants trained with augmentation perform at least as well as the baseline K-HMM, and substantially better on the harder categories as indicated in the plots for \emph{tetrads} and \emph{sevenths}.
 \section{Discussion}
