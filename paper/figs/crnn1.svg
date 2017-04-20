@@ -41,7 +41,7 @@
      inkscape:window-width="1920"
      inkscape:window-height="1007"
      id="namedview17"
-     showgrid="false"
+     showgrid="true"
      inkscape:document-units="px"
      inkscape:snap-nodes="false"
      inkscape:snap-global="false"
@@ -49,9 +49,9 @@
      inkscape:snap-tangential="true"
      inkscape:snap-path-clip="true"
      inkscape:snap-path-mask="true"
-     inkscape:zoom="0.98605181"
-     inkscape:cx="287.86591"
-     inkscape:cy="235.80424"
+     inkscape:zoom="1.0908054"
+     inkscape:cx="318.8222"
+     inkscape:cy="258.36486"
      inkscape:window-x="0"
      inkscape:window-y="27"
      inkscape:window-maximized="0"
@@ -67,11 +67,34 @@
   <defs
      id="defs4"
      style="stroke-linecap:butt;stroke-linejoin:round">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient4191">
+      <stop
+         style="stop-color:#6699ff;stop-opacity:1;"
+         offset="0"
+         id="stop4193" />
+      <stop
+         style="stop-color:#6699ff;stop-opacity:0;"
+         offset="1"
+         id="stop4195" />
+    </linearGradient>
     <style
        type="text/css"
        id="style6">
 *{stroke-linecap:butt;stroke-linejoin:round;}
   </style>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient4191"
+       id="radialGradient4199"
+       cx="331.20001"
+       cy="50.399055"
+       fx="331.20001"
+       fy="50.399055"
+       r="27.908665"
+       gradientTransform="matrix(7.293744,-6.085229e-8,0,1.0072436,-2084.4881,-0.79754041)"
+       gradientUnits="userSpaceOnUse" />
   </defs>
   <g
      id="g4296"
@@ -265,16 +288,16 @@
        id="tspan4159-6"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle;stroke-linecap:butt;stroke-linejoin:round"
        x="262.04391"
-       y="86.306389">Conv2</tspan><tspan
+       y="86.306389">Conv1</tspan><tspan
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle;stroke-linecap:butt;stroke-linejoin:round"
        x="262.04391"
        y="101.30639"
-       id="tspan4161-7">1x216</tspan><tspan
+       id="tspan4161-7">1</tspan><tspan
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle;stroke-linecap:butt;stroke-linejoin:round"
        x="262.04391"
-       y="116.3064"
+       y="116.30639"
        id="tspan4163-5">ReLU</tspan><tspan
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle;stroke-linecap:butt;stroke-linejoin:round"
@@ -319,11 +342,11 @@
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle;stroke-linecap:butt;stroke-linejoin:round"
        x="538.84393"
        y="101.30639"
-       id="tspan4161-93" /><tspan
+       id="tspan4161-93">1</tspan><tspan
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle;stroke-linecap:butt;stroke-linejoin:round"
        x="538.84393"
-       y="116.3064"
+       y="116.30639"
        id="tspan4163-6">SoftMax</tspan><tspan
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle;stroke-linecap:butt;stroke-linejoin:round"
@@ -349,12 +372,12 @@
      rx="0"
      ry="0" />
   <rect
-     style="fill:#6699ff;fill-opacity:0.49698797;stroke:#6699ff;stroke-width:1.41732287;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     style="fill:url(#radialGradient4199);fill-opacity:1;stroke:#6699ff;stroke-width:1.41732287;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      id="rect4224-6-2"
-     width="54.400005"
-     height="6.3999987"
+     width="54.399994"
+     height="161.14774"
      x="304"
-     y="46.400009"
+     y="28.064938"
      rx="0"
      ry="0" />
   <rect
