@@ -57,6 +57,9 @@ def process_arguments(args):
     parser.add_argument('--weighted', dest='weighted', action='store_true',
                         help='Enable weighted sampling for training')
 
+    parser.add_argument('--static', dest='temporal', action='store_false',
+                        help='Use static weighting instead of temporal weighting')
+
     parser.add_argument('--train-streamers', dest='train_streamers', type=int,
                         default=1024,
                         help='Number of active training streamers')
@@ -321,7 +324,7 @@ def construct_model(pump, structured):
     return model, INPUTS, OUTPUTS
 
 
-def make_output_path(working, structured, augmentation, weighted):
+def make_output_path(working, structured, augmentation, weighted, temporal=True):
 
     subdir = 'model'
     if structured:
@@ -332,6 +335,8 @@ def make_output_path(working, structured, augmentation, weighted):
 
     if weighted:
         subdir += '_weighted'
+        if not temporal:
+            subdir += '_static'
 
     outdir = os.path.join(working, subdir)
 
@@ -361,7 +366,7 @@ def score_model(pump, model, idx, working, refs, structured):
 
 
 def run_experiment(working, refs, max_samples, duration, structured,
-                   augmentation, weighted, rate,
+                   augmentation, weighted, temporal, rate,
                    batch_size, epochs, epoch_size, validation_size,
                    early_stopping, reduce_lr, seed):
     '''
@@ -387,6 +392,9 @@ def run_experiment(working, refs, max_samples, duration, structured,
 
     weighted : bool
         Whether to use weighted sampling
+
+    temporal : bool
+        If using weighting, whether it's static or temporal
 
     batch_size : int
         Size of batches
@@ -452,7 +460,7 @@ def run_experiment(working, refs, max_samples, duration, structured,
                                           chord_weights,
                                           pump['chord_tag'],
                                           quality_only=True,
-                                          temporal=True)
+                                          temporal=temporal)
         else:
             train_weights = pd.Series(data={k: 1.0
                                             for k in idx_train['id'].values})
@@ -485,13 +493,14 @@ def run_experiment(working, refs, max_samples, duration, structured,
                         chord_bass='sparse_categorical_crossentropy')
             monitor = 'val_chord_tag_loss'
         else:
-            monitor = 'loss'
+            monitor = 'val_loss'
 
         model.compile(K.optimizers.Adam(), loss=loss, metrics=metrics)
 
         # Create output path
         output_path = make_output_path(working, structured,
-                                       augmentation, weighted)
+                                       augmentation, weighted,
+                                       temporal=temporal)
 
         # Store the model
         model_spec = K.utils.serialize_keras_object(model)
@@ -549,7 +558,7 @@ if __name__ == '__main__':
 
     run_experiment(params.working, params.refs,
                    params.max_samples, params.duration,
-                   params.structured, params.augmentation, params.weighted,
+                   params.structured, params.augmentation, params.weighted, params.temporal,
                    params.rate,
                    params.batch_size,
                    params.epochs, params.epoch_size,
