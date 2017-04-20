@@ -429,6 +429,7 @@ def run_experiment(working, refs, max_samples, duration, structured,
     sampler = make_sampler(max_samples, duration, pump, seed)
 
     N_SPLITS = 5
+    N_SPLITS = 1
 
     for split in range(N_SPLITS):
 
