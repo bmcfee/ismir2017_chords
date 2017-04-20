@@ -239,9 +239,9 @@ For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, the GRU
     r(t) &=& \sigma\left(W_r x(t) + T_r h(t-1) + b_r\right)\\
     u(t) &=& \sigma\left(W_u x(t) + T_u h(t-1) + b_u\right)\\
     \hat{h}(t) &=& \rho\left(W_h x(t) + T_h \left( r(t) \odot h(t-1) \right) + b_h \right)\label{eq:candidate}\\
-    h(t) &=& u(t) \odot h(t-1) + (1-u) \odot \hat{h}(t),
+    h(t) &=& u(t) \odot h(t-1) + (1-u(t)) \odot \hat{h}(t),
 \end{eqnarray}
-where $r(t), u(t) \in [0,1]^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x$ and previous hidden state $h$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
+where $r(t), u(t) \in [0,1]^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
 The model parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, the state transition operators $T_* \in \mathbb{R}^{D\times D}$, and bias vectors $b_* \in \mathbb{R}^D$.
 
 When an element of the update vector ${u(t)}_j \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h(t)}_j \leftarrow {h(t-1)}_j$.
@@ -314,13 +314,13 @@ Next, labels are decomposed into \emph{root} and \emph{pitch classes} (relative 
         (0, 4, 7) & \text{pitch classes}
     \end{cases}.
 \end{align*}
-The set of active pitch classes is matched against a set of 13 templates: \texttt{maj, min, dim, aug, min6, maj6, min7, maj7, dom7, hdim7, minmaj7, sus2, sus4}.
+The set of active pitch classes is matched against a set of 14 templates: \texttt{maj, min, dim, aug, min6, maj6, min7, maj7, dom7, dim7, hdim7, minmaj7, sus2, sus4}.
 The root and matched template are combined, and mapped to a canonical form to resolve enharmonic equivalences:
 \begin{align*}
     \left(1, (0, 4, 7) \right) &\mapsto \texttt{C}\sharp\texttt{:maj}.
 \end{align*}
 If the pitch class set does not match one of the templates, it is mapped to the unknown chord symbol \texttt{X}; the no-chord symbol is represented distinctly as \texttt{N}.
-The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), and $12\times13=168$ combinations of root and quality.
+The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), and $12\times14=168$ combinations of root and quality.
 
 
 \subsection{Structured training}
@@ -475,12 +475,19 @@ Each subplot reports the recall computed by \texttt{mir\_eval} of correctly esti
 \end{itemize}
 
 From \cref{fig:results}, several trends can be observed.
-First, all models are improved substantially across all metrics by data augmentation.  This is to be expected, since the CR models do not model quality independently of root.
-Second, structured training generally provides a modest improvement, and it seems particularly helpful for root estimation.
-This also should be expected, as structured training specifically forces the model to estimate the root independently of quality.
+First, data augmentation (\emph{+A} variants) provides a consistent and substantial improvement for all models.
+This is to be expected, since the CR models do not model quality independently of root.
+Note that DNN models root independent of quality, and KHMM was trained with chroma-rotation data augmentation, so it is unsurprising that augmentation is necessary to match performance of these methods.
+
+% TODO: rewrite this part
+Second, structured training (\emph{+S} variants) generally provides a modest, but consistent improvement, and yields the best-performing model (\emph{CR2+S+A}).
+%This also should be expected, as structured training specifically forces the model to estimate the root independently of quality.
+
+Third, the deep model \emph{CR2+A} performs comparably or slightly better than the wide model \emph{CR1+A}.
+The gaps are more pronounced for the structured variants.
 
 % FIXME: verify this after all the numbers are in
-Interestingly, the deep decoder model (CR2) only improves over the shallow decoder (CR1) when using structured training.
+%Interestingly, the deep decoder model (CR2) only improves over the shallow decoder (CR1) when using structured training.
 % XXX: Speculation
 %   I think this is because without structured training, rare chords look like noise compared to common chords
 %   this can throw off the sequencing
@@ -491,7 +498,21 @@ Interestingly, the deep decoder model (CR2) only improves over the shallow decod
 %   TODO: --> figure out which classes we mess up the most
 %           --> build a 170x170 confusion matrix
 
-Finally, all variants trained with augmentation perform at least as well as the baseline K-HMM, and substantially better on the harder categories as indicated in the plots for \emph{tetrads} and \emph{sevenths}.
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{qualconf}
+    \caption{Within-root, frame-wise quality confusions for the best performing model \emph{CR2+S+A}.
+    Results are aggregated across frames in all test tracks, and compare the frame's predicted label to its reference label in the simplified vocabulary.\label{fig:confusion}}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{confdelta}
+    \caption{The difference between confusion matrices for \emph{CR2+S+A} and the unstructured \emph{CR2+A}.
+             Positive values along the diagonal indicate increased accuracy.\label{fig:confdelta}}
+\end{figure}
+
+%Finally, all variants trained with augmentation perform at least as well as the baseline K-HMM, and substantially better on the harder categories as indicated in the plots for \emph{tetrads} and \emph{sevenths}.
 \section{Discussion}
 
 % TODO:
