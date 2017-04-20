@@ -219,7 +219,7 @@ The \emph{encoder} component maps audio into a latent feature space using only l
 Input audio is represented as a $T\times F$ time-series of log-power constant-Q spectra (for $T$ frames and $F$ frequency bands).
 After batch normalization~\cite{ioffe2015batch} (not pictured), the first convolutional layer consists of a single two-dimensional $5\times5$ filter, followed by a bank of $36$ single-frame, one-dimensional convolutional filters, resulting in a $T\times 36$ feature encoding.
 Both layers use rectified linear (ReLU) activations.
-The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to produce a filter which suppresses transients and vibrato while emphasizing sustained tones.
+The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to learn to suppress transients and vibrato while emphasizing sustained tones.
 The second layer produces a convolutional encoding of the harmonic content of each frame.
 
 \begin{figure}
@@ -241,7 +241,9 @@ For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, the GRU
     \hat{h}(t) &=& \rho\left(W_h x(t) + T_h \left( r(t) \odot h(t-1) \right) + b_h \right)\label{eq:candidate}\\
     h(t) &=& u(t) \odot h(t-1) + (1-u) \odot \hat{h}(t),
 \end{eqnarray}
-where $r(t), u(t) \in [0,1]^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x$ and previous hidden state $h$, and $\rho$ is a non-linear activation (typically $\tanh$).
+where $r(t), u(t) \in [0,1]^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x$ and previous hidden state $h$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
+The model parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, the state transition operators $T_* \in \mathbb{R}^{D\times D}$, and bias vectors $b_* \in \mathbb{R}^D$.
+
 When an element of the update vector ${u(t)}_j \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h(t)}_j \leftarrow {h(t-1)}_j$.
 Otherwise, if $r(t) \approx 1$, then $h(t)$ evolves according to standard RNN dynamics.
 However, when $r(t) \approx 0$, the $h$ term in~\eqref{eq:candidate} goes to 0 and the update \emph{resets} and depends only on the input $x(t)$.
@@ -322,7 +324,7 @@ The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), an
 
 
 \subsection{Structured training}
-
+\label{sec:encoding}
 % Figure for the structured model
 
 % Note: for structured training, no simplification is performed
@@ -333,24 +335,55 @@ The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), an
 %       
 
 The CR models described above map each hidden state vector to a fixed vocabulary produced by the chord simplification strategy described in \cref{sec:vocab}.
-They can be optimized in the usual way by minimizing a multi-class classification loss (cross-entropy), but this approach has two clear drawbacks.
-First, it does not leverage the structure of chord space: for example, if the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj} or \texttt{N}, even though it is far less severe of a mistake.
-Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes, which can render certain chords ambiguous, such as power chords like \texttt{A:maj(*3)}$\mapsto$\texttt{A:maj}.
-These effects combine to inhibit the model's ability to capture certain classes.
+They can be optimized in the usual way by minimizing a multi-class classification loss (cross-entropy), but this approach has three clear drawbacks.
 
-To counteract these effects, we introduce a structured representation to the decoder component of the model, depicted in \cref{fig:crnn2}.
+First, it does not leverage the structure of chord space.
+If the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj}.
+This is at odds with evaluation (and, arguably, application utility), where predictions are evaluated along multiple dimensions, such as capturing the root, third, or fifth.
+More generally, some mistakes are simply more severe than others from a transcription perspective, and this is not reflected in a 1-of-K classification formulation.
+
+% TODO:
+%   rare classes look like noise
+%   structure can help exploit commonalities
+
+
+Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
+This can render certain chords ambiguous, and can introduce discrepancies between the (simplified) annotation and the corresponding acoustic content.
+In the \texttt{D}$\flat$\texttt{:maj(*5,9)/3} example provided in \cref{sec:vocab}, the simplified chord \texttt{C}$\sharp$\texttt{:maj} would imply the presence of \texttt{G}$\sharp$, even though it was explicitly discarded in the original annotation and should therefore not be expected in the signal.
+This introduces label noise to the model, and may negatively impact accuracy.
+This is particularly problematic for power chords, often represented as \texttt{?:maj(*3)}, which are prevalent in pop and rock music.
+
+%These effects combine to inhibit the model's ability to capture rare classes, where scarcity of observations make it difficult to .
+
+Third, out-of-gamut chords all map to a common class \texttt{X}.
+The high variability of this class provides little useful information to the model while training, since disparate chords map to the same representation.
+At test time, it would be beneficial if the model could predict ``nearby'' chords, but multi-class training provides little incentive to learn this behavior.
+% catch-all class can crowd the space
+% but maybe you'd still get some points at prediction time by predicting a nearby chord
+
+
+
+%The structured representation preserves the pitch content of these classes, allowing the model to 
+
+To counteract these effects, we introduce a structured representation of chords, depicted in \cref{fig:encoding}.
 The standard evaluation criteria for chord recognition operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass}), as described in \cref{sec:vocab}~\cite{raffel2014mir_eval}.
 This representation can be predicted directly by the model, and used either as direct output, or as an intermediate representation prior to predicting the chord label.
+
 
 % TODO:
 %   in this space, common disagreements eg C:maj vs C:7 have some structural similarity due to common root and pitches
 %   this is explicitly integrated in our model
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{encoding}
+    \caption{Target chords are represented both as simplified, canonical forms (\cref{sec:vocab}), and as binary vectors encoding the root, bass, and pitch class content (\cref{sec:encoding}).
+    The special symbols \texttt{N,X} are mapped to an extra root/bass class denoted as \texttt{N}, and the all-zeros pitch vector.\label{fig:encoding}}
+\end{figure}
 
-The structured models (denoted as \emph{CR1/2+S}) predict for each frame $t$ the root pitch class (\texttt{C}--\texttt{B}, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
+The structured models (denoted as \emph{CR1/2+S}), depicted in \cref{fig:crnn2}, predict for each frame $t$ the root pitch class (\texttt{C}--\texttt{B}, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
 Root and bass estimation are modeled as a multi-class prediction with a soft-max non-linearity.
 Pitch class prediction is modeled as a multi-label prediction, and uses a logistic (sigmoid) non-linearity.
 This results in an idealized chroma representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}, but predicted from the hidden state of an RNN rather than a spectrogram patch.
-These three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
 
 \begin{figure}
     \centering
@@ -362,11 +395,11 @@ These three layers are concatenated, along with the hidden state itself, to prod
     The hidden state, root, pitch classes, and bass predictions are then concatenated and used as inputs to the chord prediction layer.\label{fig:crnn2}}
 \end{figure}
 
-
-During training, the structured models are provided with both the simplified chord tag, and the structured representation of the original (non-simplified) chord, and minimize the sum of losses across all outputs.
-In this way, the model can both leverage the structure of the output space, and learn to be robust to errors or ambiguities in the vocabulary simplification process.
-
-
+% Note: in general, it's not trivial to invert root+chroma -> chord, so we still learn this as part of the decoder
+In general, it is not trivial to invert the root-chroma-bass representation to a unique chord label.
+Therefore, these three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
+During training, the structured models learn to minimize the sum of losses across all outputs.
+In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
 
 \subsection{Data augmentation}
 \label{sec:muda}
