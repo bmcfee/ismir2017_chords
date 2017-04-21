@@ -402,6 +402,7 @@ Models trained with data augmentation are denoted by \emph{+A}.
 %   training set => 12x by data augmentation
 For evaluation, we used the dataset described by Humphrey and Bello~\cite{humphrey2015four}, which includes 1217 tracks from the Isophonics, Billboard, RWC Pop, and MARL collections.
 To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly hold out 1/4 of each training set for validation.
+We compare the proposed methods to two strong baselines: a deep convolutional network~\cite{humphrey2015four} (denoted \emph{DNN}), and the K-stream HMM~\cite{cho2014improved} (denoted \emph{KHMM}).\footnote{Comparisons were facilitated using the pre-computed outputs provided at \url{https://github.com/ejhumphrey/ace-lessons}.}
 
 \subsection{Pre-processing}
 
@@ -424,7 +425,7 @@ Models are trained using mini-batches of 32 patches per batch, and 512 batches p
 %   ADAM optimization
 We use the ADAM optimizer~\cite{kingma2014adam}, and reduce the learning rate if there is no improvement in validation score after 10 epochs.
 Training is stopped early if there is no improvement in validation score after 20 epochs, and limited to a maximum of 100 epochs total.
-For all models, validation score is determined only by decoder loss (cross-entropy).
+For all models, validation score is determined solely by label prediction loss (cross-entropy).
 
 %   validation by decoder loss
 %   learning rate reduction after 10 epochs
@@ -473,6 +474,7 @@ The combined effect of structured training, deep decoder, and data augmentation 
 To get some more insight about the mistakes made by the model at test time, we illustrate the frame-wise, within-root quality confusion matrix for the \emph{CR2+S+A} model in \Cref{fig:confusion}.
 For each frame of a test track, its true (simplified) label is compared to the label predicted by the model if they match at the root.
 Results are then aggregated across all test tracks, and normalized by (reference quality) frequency to produce the confusion matrix.
+Under this evaluation, the \emph{CR2+S+A} achieves 63.6\% accuracy of correctly identifying the simplified chord label (root and quality) at the frame level.
 
 \begin{figure}
     \centering
@@ -482,13 +484,13 @@ Results are then aggregated across all test tracks, and normalized by (reference
     Results are aggregated across frames over all test tracks.\label{fig:confusion}}
 \end{figure}
 
-In \Cref{fig:confusion},the large values along the main diagonal indicate general high accuracy at predicting the exact (simplified) chord label (63.6\%).
-We observe that the model's most common mistakes are related to sevenths, \eg, \texttt{7}$\rightarrow$\texttt{maj}, \texttt{dim7}$\rightarrow$\texttt{maj7}, and \texttt{hdim7}$\rightarrow$\texttt{dim} or \texttt{min6}, though it appears to not confuse different seventh chords with each-other.
-
-The low accuracy of predicting out-of-gamut \texttt{X}-chords (bottom row) indicates that the model is reluctant to predict that symbol.
-In the entire corpus, there are 4557 instances (about 3\%) which map to \texttt{X}: 2091 of which are 1-chords (\eg, \texttt{C:1}), 2365 of which are power chords (\eg, \texttt{C:5}), and 101 \texttt{X}-chords.
-The model appears to distribute these
-% TODO: find something to say about this
+In \Cref{fig:confusion}, the first obvious trend is a bias toward \texttt{min} and \texttt{maj}, in accordance with the natural bias in the training set.
+Note, however, that the confusions are generally understandable as simplifications of true labels, \eg, \texttt{min7}$\rightarrow$\texttt{min} and (\texttt{maj7},\texttt{7})$\rightarrow$\texttt{maj}.
+Suspended chords are most frequently mapped to major chords.
+The bottom row corresponds to out-of-gamut \texttt{X}-chords, which map overwhelmingly to \texttt{maj} and \texttt{min}.
+This can be explained by examining which labels map to \texttt{X} during simplification.
+There are 4557 instances of such chords in the corpus (about 3\%), and of these, 2091 are 1-chords (only the root) and 2365 are power chords (root+fifth), neither of which map unambiguously onto the simplified vocabulary.
+The model appears to be resolving these points toward the more commonly used \texttt{min} and \texttt{maj} qualities.
 
 \begin{figure}
     \centering
@@ -499,9 +501,11 @@ The model appears to distribute these
 
 For comparison purposes, the difference in the confusion matrices between \emph{CR2+S+A} and the unstructured model \emph{CR2+A} is depicted in \Cref{fig:confdelta}.
 Here, positive values (red) along the diagonal indicate increased accuracy for the structured model, while negative values along the diagonal (blue) indicate decreased accuracy.
-While the net effect is positive, increasing accuracy by +0.8\%, the structured model slightly degrades accuracy for the rarest qualities \texttt{dim7} and \texttt{minmaj7}.
-This is compensated for by the increase in accuracy for \texttt{7} (reducing confusions with \texttt{maj}) and \texttt{maj6} (reducing coonfusions with \texttt{hdim7}, \texttt{maj}, and \texttt{minmaj7}).
-Note however that the overall accuracy remains high, as these classes still have large diagonal values in \Cref{fig:confusion}.
+The net effect is positive, increasing accuracy by +0.8\% over \emph{CR2+A}, which achieves accuracy of 62.8\%.
+Despite a slight degradation in accuracy for \texttt{maj7}, there is a substantial increase in accuracy for \texttt{aug}, \texttt{dim7}, and \texttt{hdim7}.
+Compared to the unstructured model, the structured model reduces confusions from \texttt{aug} to (\texttt{maj}, \texttt{7}), and \texttt{dim7} to (\texttt{min},\texttt{7}).
+
+
 
 %Finally, all variants trained with augmentation perform at least as well as the baseline K-HMM, and substantially better on the harder categories as indicated in the plots for \emph{tetrads} and \emph{sevenths}.
 \section{Conclusion}
@@ -510,7 +514,7 @@ Although the proposed model improve over the baseline methods, there are clear d
 First, although the proposed model predicts the bass note, this feature is only used for establishing context in decoding, and the model does not predict inversions.
 Supporting inversion prediction would be a simple extension of the method described here, and would not require creating special vocabulary entries for each potential inversion.
 Second, the structured representation facilitates modeling infrequently observed, complex chords, and could readily be extended to support extended chords by using a multi-octave pitch class representation.
-However, doing so effectively---and evaluating the resulting predictions---would require larger annotated corpora for these classes than we currently have access to.
+However, doing so effectively---and evaluating the resulting predictions---would require larger annotated corpora for these classes than are presently available.
 
 %   future work
 %       expanded vocab
