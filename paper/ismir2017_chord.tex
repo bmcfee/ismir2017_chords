@@ -24,10 +24,10 @@
 \setlist[itemize]{noitemsep, topsep=0ex}
 \setlist[enumerate]{noitemsep, topsep=0ex}
 
-\def\eg{\emph{e.g.\/}}
-\def\ie{\emph{i.e.\/}}
-\def\etc{\emph{etc.\/}}
-\def\etal{\emph{et al.\/}}
+\def\eg{\emph{e.g.}}
+\def\ie{\emph{i.e.}}
+\def\etc{\emph{etc.}}
+\def\etal{\emph{et al.}}
 
 
 % Title.
@@ -55,7 +55,7 @@
 
 % Three addresses
 % --------------
-\threeauthors
+\threeauthors%
   {First Author} {Affiliation1 \\ {\tt author1@ismir.edu}}
   {Second Author} {\bf Retain these fake authors in\\\bf submission to preserve the formatting}
   {Third Author} {Affiliation3 \\ {\tt author3@ismir.edu}}
@@ -102,12 +102,22 @@ Evaluations on a corpus of 1217 annotated recordings demonstrate substantial imp
 % These classes are rare in the common datasets, so modeling them is hard
 
 % But we can leverage the structure of chord space to better exploit available data
+Automatic chord recognition systems have been an active area of research within music informatics for quite some time.
+These systems take as input an audio signal, and produce a time-varying symbolic representation of the signal in terms of \emph{chord labels}, which encode simultaneous pitch class content, such as \texttt{C:maj} or \texttt{G:hdim7}.
+Early systems focused on simplified versions of this task, by predicting only the root note and \emph{major} or \emph{minor} qualities, or \emph{no-chord} (\texttt{N}).
+More recently, interest has shifted toward the \emph{large-vocabulary} regime, where a broader class of chord qualities must be estimated from the signal, such as triads, sixths, sevenths, and suspended chords.
+
+Typical chord recognition systems model the task as a time-varying multi-class classification problem.
+This approach may be reasonable for the small-vocabulary regime, where the classes are sufficiently distinct to be modeled as unrelated, and each class may be observed with approximately uniform probability.
+However, in the large-vocabulary, the multi-class formulation ignores the structural similarity between related chords, such as the shared notes between \emph{C:min} and \emph{C:min7}.
+Moreover, the distribution of classes becomes highly non-uniform, thereby making it difficult to model these relationships from purely symbolic representations with no additional structure.
+We posit that leveraging known relationships between chord classes in terms of common roots and shared pitch classes can help mitigate the problem of observation bias, resulting in more accurate models of rare chord classes.
 
 \subsection{Our contributions}
 
-We develop convolutional-recurrent neural networks for large-vocabulary chord recognition.
-To exploit similarity between target chord classes, we introduce a structured representation which influences the intermediate representation and informs the output label predictor.
-By combining deep, recurrent networks with structured representation learning, the proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models.
+In this work, we address the problem of large-vocabulary chord recognition by introducing a structured representation of chord qualities.
+We integrate this representation with deep, convolutional-recurrent neural networks, which are trained end-to-end to predict time-varying chord sequences from spectral audio representations.
+The proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models.
 
 %
 \section{Related work}
@@ -146,11 +156,11 @@ The structured representation we describe in \Cref{sec:methods} differs in that 
 %%% Deep methods
 In recent years, deep learning methods have been increasingly popular for chord recognition.
 The majority of existing systems are trained in two stages. 
-First, a model is built first to encode short patches of audio, \eg as an idealized chroma vector~\cite{boulanger2013audio,korzeniowski2016feature} or likelihood distribution over chord categories~\cite{humphrey2015four,sigtia2015audio,zhou2015chord,deng2016hybrid}.
-Second, a dynamics model integrates the time-series of learned representations to produce a sequence of predicted labels, \eg using an HMM~\cite{humphrey2015four,zhou2015chord}, recurrent neural network (RNN)~\cite{boulanger2013audio,sigtia2015audio}, or simple point-wise prediction~\cite{korzeniowski2016feature}.
+First, a model is built first to encode short patches of audio, \eg, as an idealized chroma vector~\cite{boulanger2013audio,korzeniowski2016feature} or likelihood distribution over chord categories~\cite{humphrey2015four,sigtia2015audio,zhou2015chord,deng2016hybrid}.
+Second, a dynamics model integrates the time-series of learned representations to produce a sequence of predicted labels, \eg, using an HMM~\cite{humphrey2015four,zhou2015chord}, recurrent neural network (RNN)~\cite{boulanger2013audio,sigtia2015audio}, or simple point-wise prediction~\cite{korzeniowski2016feature}.
 The models proposed in this work differ in that they are jointly trained end-to-end from spectral features, and learn the internal representation along with the dynamics using multiple recurrent layers.
 
-Regardless of the model architecture, it is common to exploit some structural properties of chords, \eg by tying model parameters for the same chord quality across roots~\cite{humphrey2015four}, or rotating chroma vectors through all possible root positions during training~\cite{cho2014improved}.
+Regardless of the model architecture, it is common to exploit some structural properties of chords, \eg, by tying model parameters for the same chord quality across roots~\cite{humphrey2015four}, or rotating chroma vectors through all possible root positions during training~\cite{cho2014improved}.
 Although the methods we propose do not model quality independent of root, they do model active pitch class sets independently.
 Chroma rotation can be viewed as a form of data augmentation, and the models we develop benefit substantially from a slightly more general form of augmentation described in \Cref{sec:muda}.
 To the best of our knowledge, the proposed method is the first to exploit similarities between chords by jointly modeling labels and structured encodings.
@@ -222,7 +232,7 @@ Both layers use rectified linear (ReLU) activations.
 The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to learn to suppress transients and vibrato while emphasizing sustained tones.
 The second layer produces a convolutional encoding of the harmonic content of each frame.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{crnn1}
     \caption{The convolutional encoder, recurrent decoder network denoted as \emph{CR1}.
@@ -234,14 +244,14 @@ The second layer produces a convolutional encoding of the harmonic content of ea
 
 The convolutional feature encoding is mapped into either one or two layers of bi-directional gated recurrent units (GRUs)~\cite{cho2014learning}.
 The GRU model is functionally similar to the commonly used long-short-term memory (LSTM) model~\cite{hochreiter1997long}, but has fewer parameters and often performs comparably in practice~\cite{jozefowicz2015empirical}.
-For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, the GRU produces a sequence of $D$-dimensional hidden state vectors $h(t) \in [-1, +1]^D$ as follows:
+For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, the GRU produces a sequence of $D$-dimensional hidden state vectors $h(t) \in {[-1, +1]}^D$ as follows:
 \begin{eqnarray}
     r(t) &=& \sigma\left(W_r x(t) + T_r h(t-1) + b_r\right)\\
     u(t) &=& \sigma\left(W_u x(t) + T_u h(t-1) + b_u\right)\\
     \hat{h}(t) &=& \rho\left(W_h x(t) + T_h \left( r(t) \odot h(t-1) \right) + b_h \right)\label{eq:candidate}\\
     h(t) &=& u(t) \odot h(t-1) + (1-u(t)) \odot \hat{h}(t),
 \end{eqnarray}
-where $r(t), u(t) \in [0,1]^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
+where $r(t), u(t) \in {[0,1]}^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
 The model parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, the state transition operators $T_* \in \mathbb{R}^{D\times D}$, and bias vectors $b_* \in \mathbb{R}^D$.
 
 When an element of the update vector ${u(t)}_j \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h(t)}_j \leftarrow {h(t-1)}_j$.
@@ -253,29 +263,16 @@ These properties make the GRU model appealing for chord recognition, where tempo
 The bi-directional variant consists of two independent GRUs, one running in each direction, whose hidden state vectors are concatenated to produce the bi-directional hidden state vector $h(t)$.
 This layer integrates over the entirety of the input signal, and provides temporal smoothing and context for the encoded feature representation.
 
-In our experiments, we evaluate the following decoder architectures:
+We evaluate the following decoder architectures, which trade breadth (number of hidden states) for depth (number of layers):
 \begin{description}
     \item[CR1] a single Bi-GRU layer with 512 total hidden state dimensions (256 for each direction);
     \item[CR2] a stack of two Bi-GRU layers, each with 256 hidden state dimension (128 in each direction, per layer). The hidden state from the first layer is treated as input to the second.
 \end{description}
+While both architectures have access to the entire observation sequence, the deeper architecture may be better at capturing long-range interactions because the second layer's input has already been smoothed by the first layer.
+This should allow the first layer to focus on short-term smoothing and local context, while the second layer can model chord progressions and global context.
 
-The final hidden state vector $h(t)$ is decoded to the class label by a sigmoid layer, which produces a likelihood score $\hat{y}(t) \in [0, 1]^{V}$ over the chord vocabulary of $V$ symbols.
+The final hidden state vector ${h(t)}$ is decoded to the class label by a sigmoid layer, which produces a likelihood score ${\hat{y}(t)} \in {[0, 1]}^{V}$ over the chord vocabulary of $V$ symbols.
 At each frame, the maximum likelihood label is selected, and the time-series of chord labels is run-length encoded to form the estimated annotation for the track.
-
-
-% Figure for the basic model
-
-% conv encoder, recurrent decoder model
-
-% batch-norm on the cqt for standardization
-
-% first filter = transient suppressor / local salience
-
-% 3*12 full-height convolutional filters
-
-% bidirectional recurrent model (GRU), d=128 in each direction
-
-% logistic to output vocabulary
 
 
 \subsection{Chord vocabulary simplification}
@@ -320,17 +317,9 @@ The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), an
 
 \subsection{Structured training}
 \label{sec:encoding}
-% Figure for the structured model
-
-% Note: for structured training, no simplification is performed
-%       so that the model can still learn to map power chords to major, for example
-%       but the decoder component is still trained to map to the constrained vocab
-%       even for chords that are out of vocab, we can still learn from their encoded representation 
-%       and map them onto to a plausible output
-%       
 
 The CR models described above map each hidden state vector to a fixed vocabulary produced by the chord simplification strategy described in \Cref{sec:vocab}.
-They can be optimized in the usual way by minimizing a multi-class classification loss (cross-entropy), but this approach has three clear drawbacks.
+They can be optimized in the usual way by minimizing a multi-class classification loss (cross-entropy), but this approach has some clear drawbacks.
 
 First, it does not leverage the structure of chord space.
 If the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj}.
@@ -339,12 +328,11 @@ More generally, some mistakes are simply more severe than others from a transcri
 
 Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
 This can render certain chords ambiguous, and can introduce discrepancies between the (simplified) annotation and the corresponding acoustic content.
-In the \texttt{D}$\flat$\texttt{:maj(9)/3} example provided in \Cref{sec:vocab}, the simplified chord \texttt{C}$\sharp$\texttt{:maj} would imply the absence of \texttt{D}$\sharp$, even though it was explicitly included in the original annotation and should be expected in the signal.
+In the \texttt{D}$\flat$\texttt{:maj{(9)}/3} example provided in \Cref{sec:vocab}, the simplified chord \texttt{C}$\sharp$\texttt{:maj} would imply the absence of \texttt{D}$\sharp$, even though it was explicitly included in the original annotation and should be expected in the signal.
 This introduces label noise to the model, and may negatively impact accuracy.
-This is particularly problematic for power chords, often represented as \texttt{?:maj(*3)}, which are prevalent in pop and rock music.
 
-Third, out-of-gamut chords all map to a common class \texttt{X}.
-The high variability of this class provides little useful information to the model while training, since disparate chords map to the same representation.
+Third, out-of-gamut chords all map to a common class \texttt{X}, despite having potentially disparate tonal content.
+This class provides little useful information to the model while training.
 At test time, it would be beneficial if the model could predict ``nearby'' chords, but multi-class training provides little incentive to learn this behavior.
 
 
@@ -354,7 +342,7 @@ This representation can be computed for any chord in the reference annotation, a
 At prediction time, the structured representation can be treated as output, or as an intermediate representation which contribute to the chord label prediction.
 
 
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=0.9\columnwidth]{encoding}
     \caption{Target chords are represented both as simplified, canonical forms (\Cref{sec:vocab}), and as binary vectors encoding the root, bass, and pitch class content (\Cref{sec:encoding}).
@@ -366,7 +354,7 @@ Root and bass estimation are modeled as a multi-class prediction with a soft-max
 Pitch class prediction is modeled as a multi-label prediction, and uses a logistic (sigmoid) non-linearity.
 This results in an idealized chroma representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}, but predicted from the hidden state of an RNN rather than a spectrogram patch.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{crnn2}
     \caption{The structured convolutional encoder, recurrent decoder network, denoted as \emph{CR2+S}.
@@ -383,10 +371,6 @@ In this way, the model can both leverage the structure of chord space, and learn
 
 \subsection{Data augmentation}
 \label{sec:muda}
-% MUDA
-%   training set is augmented with pitch shifts of +- n semitones for n in {1,2,\dots, 6}
-%   muda does annotation deformation as well
-% all augmentations of a track get the same importance weight
 To increase training set variability, we apply pitch-shifting data augmentation using MUDA~\cite{mcfee2015software}.
 For each training example, 12 deformations are generated by shifting up or down by between 1--6 semitones.
 Testing and validation examples are not augmented.
@@ -402,6 +386,7 @@ Models trained with data augmentation are denoted by \emph{+A}.
 %   training set => 12x by data augmentation
 For evaluation, we used the dataset described by Humphrey and Bello~\cite{humphrey2015four}, which includes 1217 tracks from the Isophonics, Billboard, RWC Pop, and MARL collections.
 To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly hold out 1/4 of each training set for validation.
+We compare the proposed methods to two strong baselines: a deep convolutional network~\cite{humphrey2015four} (denoted \emph{DNN}), and the K-stream HMM~\cite{cho2014improved} (denoted \emph{KHMM}).\footnote{Comparisons were facilitated using the pre-computed outputs provided at \url{https://github.com/ejhumphrey/ace-lessons}.}
 
 \subsection{Pre-processing}
 
@@ -424,7 +409,7 @@ Models are trained using mini-batches of 32 patches per batch, and 512 batches p
 %   ADAM optimization
 We use the ADAM optimizer~\cite{kingma2014adam}, and reduce the learning rate if there is no improvement in validation score after 10 epochs.
 Training is stopped early if there is no improvement in validation score after 20 epochs, and limited to a maximum of 100 epochs total.
-For all models, validation score is determined only by decoder loss (cross-entropy).
+For all models, validation score is determined solely by label prediction loss (cross-entropy).
 
 %   validation by decoder loss
 %   learning rate reduction after 10 epochs
@@ -432,11 +417,11 @@ For all models, validation score is determined only by decoder loss (cross-entro
 %   maximum 100 epochs
 
 %   Keras + tensorflow
-All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.\footnote{Source code and pre-trained model parameters for our experiments will be made available upon publication.}
+All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.\footnote{Source code and trained models will be made available upon publication.}
 
 \subsection{Results}
 
-The main results of the evaluation are listed in \Cref{fig:results}, which illustrates the median weighted recall scores achieved by each model.\footnote{The trends for the mean scores are qualitatively similar, but the scores are lower for all models. We report the median here to reduce the influence of erroneous or otherwise spurious reference annotations reported by Humphrey and Bello~\cite{humphrey2015four}.}
+The main results of the evaluation are listed in \Cref{fig:results}, which illustrates the median weighted recall scores achieved by each model.\footnote{The trends for the mean scores are qualitatively similar, but the scores are lower for all models. We report the median here to reduce the influence of the erroneous or otherwise spurious reference annotations reported by Humphrey and Bello~\cite{humphrey2015four}.}
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.9\textwidth]{crnn-scores}
@@ -462,17 +447,33 @@ Note that DNN models root independent of quality, and KHMM was trained with chro
 Second, structured training (\emph{+S} variants) provides a modest, but consistent improvement, for both the shallow \emph{CR1} and deep \emph{CR2} decoder models.
 The difference is most pronounced in the \emph{root} evaluation, which makes sense because the structured models are explicitly trained to predict the root independently of the chord label.
 
-%, and yields the best-performing model (\emph{CR2+S+A}).
-%This also should be expected, as structured training specifically forces the model to estimate the root independently of quality.
-
 Third, the deep decoder models \emph{CR2} provide another small, but consistent improvement over the shallow decoders \emph{CR1}.
+The aggregate scores are reported in \Cref{tab:results}; for brevity, only the models with data augmentation are included.
 The combined effect of structured training, deep decoder, and data augmentation (\emph{CR2+S+A}) results in the highest scoring model across all metrics.
 
+\begin{table*}
+    \centering
+    \caption{Median weighted recall scores for methods under comparison.\label{tab:results}}
+    \begin{tabular}{lrrrrrrr}
+        \toprule
+        Method  & Root & Thirds & Triads & Sevenths & Tetrads & Maj-Min & MIREX\\
+        \midrule
+        CR2+S+A & 0.861 & 0.836 & 0.812 & 0.729 & 0.671 & 0.855 & 0.852\\
+        CR2+A   & 0.850 & 0.828 & 0.801 & 0.719 & 0.659 & 0.845 & 0.837\\
+        CR1+S+A & 0.850 & 0.824 & 0.801 & 0.716 & 0.648 & 0.842 & 0.832\\
+        CR1+A   & 0.841 & 0.815 & 0.791 & 0.702 & 0.647 & 0.834 & 0.829\\
+        \midrule
+        KHMM~\cite{cho2014improved}    & 0.849 & 0.822 & 0.785 & 0.674 & 0.629 & 0.817 & 0.827\\
+        DNN~\cite{humphrey2015four}     & 0.838 & 0.809 & 0.766 & 0.654 & 0.605 & 0.803 & 0.812\\
+        \bottomrule
+    \end{tabular}
+\end{table*}
 \subsection{Error analysis}
 
 To get some more insight about the mistakes made by the model at test time, we illustrate the frame-wise, within-root quality confusion matrix for the \emph{CR2+S+A} model in \Cref{fig:confusion}.
 For each frame of a test track, its true (simplified) label is compared to the label predicted by the model if they match at the root.
 Results are then aggregated across all test tracks, and normalized by (reference quality) frequency to produce the confusion matrix.
+Under this evaluation, the \emph{CR2+S+A} achieves 63.6\% accuracy of correctly identifying the simplified chord label (root and quality) at the frame level.
 
 \begin{figure}
     \centering
@@ -482,13 +483,13 @@ Results are then aggregated across all test tracks, and normalized by (reference
     Results are aggregated across frames over all test tracks.\label{fig:confusion}}
 \end{figure}
 
-In \Cref{fig:confusion},the large values along the main diagonal indicate general high accuracy at predicting the exact (simplified) chord label (63.6\%).
-We observe that the model's most common mistakes are related to sevenths, \eg, \texttt{7}$\rightarrow$\texttt{maj}, \texttt{dim7}$\rightarrow$\texttt{maj7}, and \texttt{hdim7}$\rightarrow$\texttt{dim} or \texttt{min6}, though it appears to not confuse different seventh chords with each-other.
-
-The low accuracy of predicting out-of-gamut \texttt{X}-chords (bottom row) indicates that the model is reluctant to predict that symbol.
-In the entire corpus, there are 4557 instances (about 3\%) which map to \texttt{X}: 2091 of which are 1-chords (\eg, \texttt{C:1}), 2365 of which are power chords (\eg, \texttt{C:5}), and 101 \texttt{X}-chords.
-The model appears to distribute these
-% TODO: find something to say about this
+In \Cref{fig:confusion}, the first obvious trend is a bias toward \texttt{min} and \texttt{maj}, in accordance with the natural bias in the training set.
+Note, however, that the confusions are generally understandable as simplifications of true labels, \eg, \texttt{min7}$\rightarrow$\texttt{min} and (\texttt{maj7},\texttt{7})$\rightarrow$\texttt{maj}.
+The model still appears to struggle with 6th and suspended chords, which account for 1.5\% and 2.5\% of the data (by duration), respectively.
+The bottom row corresponds to out-of-gamut \texttt{X}-chords, which map overwhelmingly to \texttt{maj} and \texttt{min}.
+This can be explained by examining which labels map to \texttt{X} during simplification.
+There are 4557 instances of such chords in the corpus (2.2\% of the data), and of these, 2091 are 1-chords (only the root) and 2365 are power chords (root+fifth), neither of which map unambiguously onto the simplified vocabulary.
+The model appears to be resolving these points toward the more commonly used \texttt{min} and \texttt{maj} qualities.
 
 \begin{figure}
     \centering
@@ -497,20 +498,24 @@ The model appears to distribute these
     Positive values along the diagonal indicate increased accuracy for \emph{CR2+S+A}.\label{fig:confdelta}}
 \end{figure}
 
-For comparison purposes, the difference in the confusion matrices between \emph{CR2+S+A} and the unstructured model \emph{CR2+A} is depicted in \Cref{fig:confdelta}.
+For comparison purposes, the difference in the confusion matrices between the structured model \emph{CR2+S+A} and the unstructured model \emph{CR2+A} is depicted in \Cref{fig:confdelta}.
 Here, positive values (red) along the diagonal indicate increased accuracy for the structured model, while negative values along the diagonal (blue) indicate decreased accuracy.
-While the net effect is positive, increasing accuracy by +0.8\%, the structured model slightly degrades accuracy for the rarest qualities \texttt{dim7} and \texttt{minmaj7}.
-This is compensated for by the increase in accuracy for \texttt{7} (reducing confusions with \texttt{maj}) and \texttt{maj6} (reducing coonfusions with \texttt{hdim7}, \texttt{maj}, and \texttt{minmaj7}).
-Note however that the overall accuracy remains high, as these classes still have large diagonal values in \Cref{fig:confusion}.
+The net effect is positive, increasing accuracy by +0.8\% over \emph{CR2+A}, which achieves accuracy of 62.8\%.
 
-%Finally, all variants trained with augmentation perform at least as well as the baseline K-HMM, and substantially better on the harder categories as indicated in the plots for \emph{tetrads} and \emph{sevenths}.
+Despite a slight degradation in accuracy for \texttt{maj7}, there is a substantial increase in accuracy for \texttt{aug}, \texttt{dim7}, \texttt{hdim7}, and modest improvement for \texttt{sus4}.
+Moreover, there is a consistent reduction of confusions to \emph{maj}, illustrated by the negative values in the second column, which indicates that the structured model is more robust to quality bias in the training set.
+Compared to the unstructured model, the structured model reduces confusions from \texttt{aug} to (\texttt{maj}, \texttt{7}), and \texttt{dim7} to (\texttt{min}, \texttt{7}, \texttt{N}).
+While \emph{CR2+S+A} still performs poorly on the rarest class \texttt{minmaj7} (0.03\% of the data), compared to \emph{CR2+A}, it resolves toward \texttt{min} more often and \texttt{min7} less often.
+This indicates that the structured model is better at abstainining from predicting a seventh if it appears unlikely, rather than predict it in the wrong position.
+
+
 \section{Conclusion}
 This work developed deep architectures and a structured training framework for chord recognition in large vocabularies.
 Although the proposed model improve over the baseline methods, there are clear directions forward in extending the ideas presented here.
 First, although the proposed model predicts the bass note, this feature is only used for establishing context in decoding, and the model does not predict inversions.
 Supporting inversion prediction would be a simple extension of the method described here, and would not require creating special vocabulary entries for each potential inversion.
 Second, the structured representation facilitates modeling infrequently observed, complex chords, and could readily be extended to support extended chords by using a multi-octave pitch class representation.
-However, doing so effectively---and evaluating the resulting predictions---would require larger annotated corpora for these classes than we currently have access to.
+However, doing so effectively---and evaluating the resulting predictions---would require larger annotated corpora for these classes than are presently available.
 
 %   future work
 %       expanded vocab
