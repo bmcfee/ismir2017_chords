@@ -24,10 +24,10 @@
 \setlist[itemize]{noitemsep, topsep=0ex}
 \setlist[enumerate]{noitemsep, topsep=0ex}
 
-\def\eg{\emph{e.g.\/}}
-\def\ie{\emph{i.e.\/}}
-\def\etc{\emph{etc.\/}}
-\def\etal{\emph{et al.\/}}
+\def\eg{\emph{e.g.}}
+\def\ie{\emph{i.e.}}
+\def\etc{\emph{etc.}}
+\def\etal{\emph{et al.}}
 
 
 % Title.
@@ -55,7 +55,7 @@
 
 % Three addresses
 % --------------
-\threeauthors
+\threeauthors%
   {First Author} {Affiliation1 \\ {\tt author1@ismir.edu}}
   {Second Author} {\bf Retain these fake authors in\\\bf submission to preserve the formatting}
   {Third Author} {Affiliation3 \\ {\tt author3@ismir.edu}}
@@ -102,12 +102,22 @@ Evaluations on a corpus of 1217 annotated recordings demonstrate substantial imp
 % These classes are rare in the common datasets, so modeling them is hard
 
 % But we can leverage the structure of chord space to better exploit available data
+Automatic chord recognition systems have been an active area of research within music informatics for quite some time.
+These systems take as input an audio signal, and produce a time-varying symbolic representation of the signal in terms of \emph{chord labels}, which encode simultaneous pitch class content, such as \texttt{C:maj} or \texttt{G:hdim7}.
+Early systems focused on simplified versions of this task, by predicting only the root note and \emph{major} or \emph{minor} qualities, or \emph{no-chord} (\texttt{N}).
+More recently, interest has shifted toward the \emph{large-vocabulary} regime, where a broader class of chord qualities must be estimated from the signal, such as triads, sixths, sevenths, and suspended chords.
+
+Typical chord recognition systems model the task as a time-varying multi-class classification problem.
+This approach may be reasonable for the small-vocabulary regime, where the classes are sufficiently distinct to be modeled as unrelated, and each class may be observed with approximately uniform probability.
+However, in the large-vocabulary, the multi-class formulation ignores the structural similarity between related chords, such as the shared notes between \emph{C:min} and \emph{C:min7}.
+Moreover, the distribution of classes becomes highly non-uniform, thereby making it difficult to model these relationships from purely symbolic representations with no additional structure.
+We posit that leveraging known relationships between chord classes in terms of common roots and shared pitch classes can help mitigate the problem of observation bias, resulting in more accurate models of rare chord classes.
 
 \subsection{Our contributions}
 
-We develop convolutional-recurrent neural networks for large-vocabulary chord recognition.
-To exploit similarity between target chord classes, we introduce a structured representation which influences the intermediate representation and informs the output label predictor.
-By combining deep, recurrent networks with structured representation learning, the proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models.
+In this work, we address the problem of large-vocabulary chord recognition by introducing a structured representation of chord qualities.
+We integrate this representation with deep, convolutional-recurrent neural networks, which are trained end-to-end to predict time-varying chord sequences from spectral audio representations.
+The proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models.
 
 %
 \section{Related work}
@@ -146,11 +156,11 @@ The structured representation we describe in \Cref{sec:methods} differs in that 
 %%% Deep methods
 In recent years, deep learning methods have been increasingly popular for chord recognition.
 The majority of existing systems are trained in two stages. 
-First, a model is built first to encode short patches of audio, \eg as an idealized chroma vector~\cite{boulanger2013audio,korzeniowski2016feature} or likelihood distribution over chord categories~\cite{humphrey2015four,sigtia2015audio,zhou2015chord,deng2016hybrid}.
-Second, a dynamics model integrates the time-series of learned representations to produce a sequence of predicted labels, \eg using an HMM~\cite{humphrey2015four,zhou2015chord}, recurrent neural network (RNN)~\cite{boulanger2013audio,sigtia2015audio}, or simple point-wise prediction~\cite{korzeniowski2016feature}.
+First, a model is built first to encode short patches of audio, \eg, as an idealized chroma vector~\cite{boulanger2013audio,korzeniowski2016feature} or likelihood distribution over chord categories~\cite{humphrey2015four,sigtia2015audio,zhou2015chord,deng2016hybrid}.
+Second, a dynamics model integrates the time-series of learned representations to produce a sequence of predicted labels, \eg, using an HMM~\cite{humphrey2015four,zhou2015chord}, recurrent neural network (RNN)~\cite{boulanger2013audio,sigtia2015audio}, or simple point-wise prediction~\cite{korzeniowski2016feature}.
 The models proposed in this work differ in that they are jointly trained end-to-end from spectral features, and learn the internal representation along with the dynamics using multiple recurrent layers.
 
-Regardless of the model architecture, it is common to exploit some structural properties of chords, \eg by tying model parameters for the same chord quality across roots~\cite{humphrey2015four}, or rotating chroma vectors through all possible root positions during training~\cite{cho2014improved}.
+Regardless of the model architecture, it is common to exploit some structural properties of chords, \eg, by tying model parameters for the same chord quality across roots~\cite{humphrey2015four}, or rotating chroma vectors through all possible root positions during training~\cite{cho2014improved}.
 Although the methods we propose do not model quality independent of root, they do model active pitch class sets independently.
 Chroma rotation can be viewed as a form of data augmentation, and the models we develop benefit substantially from a slightly more general form of augmentation described in \Cref{sec:muda}.
 To the best of our knowledge, the proposed method is the first to exploit similarities between chords by jointly modeling labels and structured encodings.
@@ -222,7 +232,7 @@ Both layers use rectified linear (ReLU) activations.
 The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to learn to suppress transients and vibrato while emphasizing sustained tones.
 The second layer produces a convolutional encoding of the harmonic content of each frame.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{crnn1}
     \caption{The convolutional encoder, recurrent decoder network denoted as \emph{CR1}.
@@ -234,14 +244,14 @@ The second layer produces a convolutional encoding of the harmonic content of ea
 
 The convolutional feature encoding is mapped into either one or two layers of bi-directional gated recurrent units (GRUs)~\cite{cho2014learning}.
 The GRU model is functionally similar to the commonly used long-short-term memory (LSTM) model~\cite{hochreiter1997long}, but has fewer parameters and often performs comparably in practice~\cite{jozefowicz2015empirical}.
-For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, the GRU produces a sequence of $D$-dimensional hidden state vectors $h(t) \in [-1, +1]^D$ as follows:
+For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, the GRU produces a sequence of $D$-dimensional hidden state vectors $h(t) \in {[-1, +1]}^D$ as follows:
 \begin{eqnarray}
     r(t) &=& \sigma\left(W_r x(t) + T_r h(t-1) + b_r\right)\\
     u(t) &=& \sigma\left(W_u x(t) + T_u h(t-1) + b_u\right)\\
     \hat{h}(t) &=& \rho\left(W_h x(t) + T_h \left( r(t) \odot h(t-1) \right) + b_h \right)\label{eq:candidate}\\
     h(t) &=& u(t) \odot h(t-1) + (1-u(t)) \odot \hat{h}(t),
 \end{eqnarray}
-where $r(t), u(t) \in [0,1]^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
+where $r(t), u(t) \in {[0,1]}^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
 The model parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, the state transition operators $T_* \in \mathbb{R}^{D\times D}$, and bias vectors $b_* \in \mathbb{R}^D$.
 
 When an element of the update vector ${u(t)}_j \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h(t)}_j \leftarrow {h(t-1)}_j$.
@@ -261,7 +271,7 @@ We evaluate the following decoder architectures, which trade breadth (number of 
 While both architectures have access to the entire observation sequence, the deeper architecture may be better at capturing long-range interactions because the second layer's input has already been smoothed by the first layer.
 This should allow the first layer to focus on short-term smoothing and local context, while the second layer can model chord progressions and global context.
 
-The final hidden state vector $h(t)$ is decoded to the class label by a sigmoid layer, which produces a likelihood score $\hat{y}(t) \in [0, 1]^{V}$ over the chord vocabulary of $V$ symbols.
+The final hidden state vector ${h(t)}$ is decoded to the class label by a sigmoid layer, which produces a likelihood score ${\hat{y}(t)} \in {[0, 1]}^{V}$ over the chord vocabulary of $V$ symbols.
 At each frame, the maximum likelihood label is selected, and the time-series of chord labels is run-length encoded to form the estimated annotation for the track.
 
 
@@ -318,7 +328,7 @@ More generally, some mistakes are simply more severe than others from a transcri
 
 Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
 This can render certain chords ambiguous, and can introduce discrepancies between the (simplified) annotation and the corresponding acoustic content.
-In the \texttt{D}$\flat$\texttt{:maj(9)/3} example provided in \Cref{sec:vocab}, the simplified chord \texttt{C}$\sharp$\texttt{:maj} would imply the absence of \texttt{D}$\sharp$, even though it was explicitly included in the original annotation and should be expected in the signal.
+In the \texttt{D}$\flat$\texttt{:maj{(9)}/3} example provided in \Cref{sec:vocab}, the simplified chord \texttt{C}$\sharp$\texttt{:maj} would imply the absence of \texttt{D}$\sharp$, even though it was explicitly included in the original annotation and should be expected in the signal.
 This introduces label noise to the model, and may negatively impact accuracy.
 
 Third, out-of-gamut chords all map to a common class \texttt{X}, despite having potentially disparate tonal content.
@@ -332,7 +342,7 @@ This representation can be computed for any chord in the reference annotation, a
 At prediction time, the structured representation can be treated as output, or as an intermediate representation which contribute to the chord label prediction.
 
 
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=0.9\columnwidth]{encoding}
     \caption{Target chords are represented both as simplified, canonical forms (\Cref{sec:vocab}), and as binary vectors encoding the root, bass, and pitch class content (\Cref{sec:encoding}).
@@ -344,7 +354,7 @@ Root and bass estimation are modeled as a multi-class prediction with a soft-max
 Pitch class prediction is modeled as a multi-label prediction, and uses a logistic (sigmoid) non-linearity.
 This results in an idealized chroma representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}, but predicted from the hidden state of an RNN rather than a spectrogram patch.
 
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{crnn2}
     \caption{The structured convolutional encoder, recurrent decoder network, denoted as \emph{CR2+S}.
