@@ -113,9 +113,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.5487296"
-     inkscape:cx="229.6983"
-     inkscape:cy="16.06723"
+     inkscape:zoom="1.7132595"
+     inkscape:cx="299.75861"
+     inkscape:cy="57.095566"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -178,7 +178,7 @@
          id="tspan4140"
          x="89.331894"
          y="863.77374"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle">Db:maj(*5,9)/3</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:center;text-anchor:middle">Db:maj(9)/3</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:40.00045013px;line-height:125%;font-family:Sans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;"
@@ -426,5 +426,12 @@
          x="199.3837"
          y="1034.6014"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.5px;font-family:'Source Code Pro';-inkscape-font-specification:'Source Code Pro';text-align:end;text-anchor:end;fill:#ff6600;">pitches</tspan></text>
+    <rect
+       y="1031.9882"
+       x="369.38977"
+       height="19.488174"
+       width="19.48819"
+       id="rect4226"
+       style="fill:#808080;fill-opacity:0.49698797;stroke:#000000;stroke-width:1.77165353;stroke-linecap:square;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
   </g>
 </svg>
