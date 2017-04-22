@@ -1,3 +1,6 @@
+% TODO:
+%   - include viz of structured output for input cqt
+%   - sell it more
 % -----------------------------------------------
 % Template for ISMIR Papers
 % 2017 version, based on previous ISMIR templates
@@ -116,7 +119,7 @@ We posit that leveraging known relationships between chord classes in terms of c
 
 \subsection{Our contributions}
 
-In this work, we address the problem of large-vocabulary chord recognition by introducing a structured representation of chord qualities, which decouples the problem of detecting roots and pitch classes from the problem of mapping these properties onto symbolic labels.
+We address the problem of large-vocabulary chord recognition by introducing a structured representation of chord qualities, which decouples the problem of detecting roots and pitch classes from the problem of mapping these properties onto symbolic labels.
 We integrate this representation with deep, convolutional-recurrent neural networks, which are trained end-to-end to predict time-varying chord sequences from spectral audio representations.
 The proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models, resulting in absolute gains of 4--5\% in the most difficult categories (sevenths and tetrads).
 
@@ -129,7 +132,7 @@ Here, we highlight the work that are most closely related to the proposed method
 %%% structured HMM methods
 Hidden Markov models (HMMs) have been a popular method for designing chord recognition systems, and provide a flexible framework in which to integrate musical domain knowledge.
 The general HMM approach models chord identities as latent state variables to be inferred from observed time-series features (\eg, chroma vectors).
-Systems like Chordino~\cite{mauchsimple} and HPA~\cite{ni2012end} extend this idea by introducing additional latent variables to model key, bass, and metrical position.
+Systems like Chordino~\cite{matthias2010a} and HPA~\cite{ni2012end} extend this idea by introducing additional latent variables to model key, bass, and metrical position.
 In these systems, bass is modeled by weighting or partitioning the frequency range to produce distinct \emph{bass} and \emph{treble chroma} observations.
 The $K$-stream HMM takes this idea a step further by modeling $K$ distinct frequency sub-bands, though it does not explicitly infer bass~\cite{cho2014improved}.
 The structured representation we describe in \Cref{sec:methods} differs in that root, bass, and chord quality are jointly inferred from the entire spectrum, and it makes no assumptions about absolute height.
@@ -219,41 +222,42 @@ To the best of our knowledge, the proposed method is the first to exploit simila
 %% or by first estimating (root, pitch classes, bass)
 
 This section outlines the data preparation, architectures, and training strategies for the models under comparison.
-We consider three independent design choices: one or two recurrent layers, the presence or absence of data augmentation, and the presence or absence of structured output training.
+We consider three independent design choices: convolutional or recurrent decoding, the inclusion of structured output training, and the use of data augmentation.
 This results in eight model configurations, which are evaluated in the subsequent section.
 
 \subsection{Encoder-decoder models}
 
-The basic model architecture depicted in \Cref{fig:crnn1} follows a convolutional encoder, recurrent decoder architecture.
-The \emph{encoder} component maps audio into a latent feature space using only local information, while the \emph{decoder} component maps from the latent feature space to the output space, and uses the entire available observation for context.
+%The models architecture depicted in \Cref{fig:crnn1} 
+%follows a encoder-decoder architecture.
+The models we investigate fall under the umbrella of \emph{encoder-decoder} architectures~\cite{cho2015describing}.
+The \emph{encoder} component maps time-varying input (audio) into a latent feature space, while the \emph{decoder} component maps from the latent feature space to the output space (chord labels).
 
-Input audio is represented as a $T\times F$ time-series of log-power constant-Q spectra (for $T$ frames and $F$ frequency bands).
-After batch normalization~\cite{ioffe2015batch} (not pictured), the first convolutional layer consists of a single two-dimensional $5\times5$ filter, followed by a bank of $36$ single-frame, one-dimensional convolutional filters, resulting in a $T\times 36$ feature encoding.
+\subsubsection{The encoder architecture}
+The encoder module is common to all models in this work, and depicted in \Cref{fig:encoder}.
+Input audio is represented as a $T\times F$ time-series of log-power constant-Q transform (CQT) spectra (for $T$ frames and $F$ frequency bands).
+After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single two-dimensional $5\times5$ filter, followed by a bank of $36$ single-frame, one-dimensional convolutional filters, resulting in a $T\times 36$ feature encoding.
 Both layers use rectified linear (ReLU) activations.
 The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to learn to suppress transients and vibrato while emphasizing sustained tones.
-The second layer produces a convolutional encoding of the harmonic content of each frame.
+The second layer summarizes the harmonic content of each frame, and can be interpreted as a local feature extractor.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{crnn1}
-    \caption{The convolutional encoder, recurrent decoder network denoted as \emph{CR1}.
-            Each CQT frame is filtered by a single $5\times 5$ 2D-convolutional filter, and then encoded as a set of 36 1-D filter activations.
-            The bi-directional recurrent decoder integrates across the entire observation to produce a time-series of 512-dimensional hidden state vectors. 
-            Each hidden state vector is independently decoded to its most likely chord label.\label{fig:crnn1}}
+    %\includegraphics[width=\columnwidth]{crnn1}
+    \includegraphics[width=\columnwidth]{encoder-r}
+    \caption{The recurrent encoder network architecture, which encodes the input (CQT) as a sequence of hidden state vectors $h(t) \in \mathbb{R}^D$.\label{fig:encoder}}
 \end{figure}
 
-
-The convolutional feature encoding is mapped into either one or two layers of bi-directional gated recurrent units (GRUs)~\cite{cho2014learning}.
-The GRU model is functionally similar to the commonly used long-short-term memory (LSTM) model~\cite{hochreiter1997long}, but has fewer parameters and often performs comparably in practice~\cite{jozefowicz2015empirical}.
-For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, the GRU produces a sequence of $D$-dimensional hidden state vectors $h(t) \in {[-1, +1]}^D$ as follows:
+Finally, the local features are encoded by a bi-directional gated recurrent unit (GRU) model~\cite{cho2014learning}.
+The GRU model is similar to the long-short-term memory (LSTM) model~\cite{hochreiter1997long}, but has fewer parameters and performs comparably in practice~\cite{jozefowicz2015empirical}.
+For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, a GRU layer produces a sequence of $D$-dimensional hidden state vectors $h(t) \in {[-1, +1]}^D$ as follows:
 \begin{eqnarray}
     r(t) &=& \sigma\left(W_r x(t) + T_r h(t-1) + b_r\right)\\
     u(t) &=& \sigma\left(W_u x(t) + T_u h(t-1) + b_u\right)\\
     \hat{h}(t) &=& \rho\left(W_h x(t) + T_h \left( r(t) \odot h(t-1) \right) + b_h \right)\label{eq:candidate}\\
     h(t) &=& u(t) \odot h(t-1) + (1-u(t)) \odot \hat{h}(t),
 \end{eqnarray}
-where $r(t), u(t) \in {[0,1]}^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, $\sigma$ denotes the logistic function, and $\rho$ is a non-linear activation (typically $\tanh$).
-The model parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, the state transition operators $T_* \in \mathbb{R}^{D\times D}$, and bias vectors $b_* \in \mathbb{R}^D$.
+where $r(t), u(t) \in {[0,1]}^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, ${\sigma(x)={(1+\mathsf{e}^{-x})}^{-1}}$ denotes the logistic function, and $\rho = \tanh$ is a saturating transfer function.
+The parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, transition operators $T_* \in \mathbb{R}^{D\times D}$, and bias vectors $b_* \in \mathbb{R}^D$.
 
 When an element of the update vector ${u(t)}_j \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h(t)}_j \leftarrow {h(t-1)}_j$.
 Otherwise, if $r(t) \approx 1$, then $h(t)$ evolves according to standard RNN dynamics.
@@ -264,16 +268,29 @@ These properties make the GRU model appealing for chord recognition, where tempo
 The bi-directional variant consists of two independent GRUs, one running in each direction, whose hidden state vectors are concatenated to produce the bi-directional hidden state vector $h(t)$.
 This layer integrates over the entirety of the input signal, and provides temporal smoothing and context for the encoded feature representation.
 
-We evaluate the following decoder architectures, which trade breadth (number of hidden states) for depth (number of layers):
-\begin{description}
-    \item[CR1] a single Bi-GRU layer with 512 total hidden state dimensions (256 for each direction);
-    \item[CR2] a stack of two Bi-GRU layers, each with 256 hidden state dimension (128 in each direction, per layer). The hidden state from the first layer is treated as input to the second.
-\end{description}
-While both architectures have access to the entire observation sequence, the deeper architecture may be better at capturing long-range interactions because the second layer's input has already been smoothed by the first layer.
-This should allow the first layer to focus on short-term smoothing and local context, while the second layer can model chord progressions and global context.
+\subsubsection{Decoder architectures}
+%We evaluate the following decoder architectures, which trade breadth (number of hidden states) for depth (number of layers):
+%\begin{description}
+%    \item[CR1] the encoder Bi-GRU layer with 512 total hidden state dimensions (256 for each direction);
+%    \item[CR2] a stack of two Bi-GRU layers, each with 256 hidden state dimension (128 in each direction, per layer). The hidden state from the first layer is treated as input to the second.
+%\end{description}
+We investigate two models for decoding $h(t)$ to the sequence of chord labels $\hat{y}(t)$.
+The first model, \emph{CR1}, decodes each frame independently:
+\begin{equation}
+    \hat{y}(t) := \text{softmax}\left(W_y h(t) + b_y\right),
+\end{equation}
+where the soft-max operates over the chord vocabulary $V$.
+For the \emph{CR1} architecture, we set the dimensionality of the hidden state vector to 512 (256 for each direction).
 
-The final hidden state vector ${h(t)}$ is decoded to the class label by a sigmoid layer, which produces a likelihood score ${\hat{y}(t)} \in {[0, 1]}^{V}$ over the chord vocabulary of $V$ symbols.
-At each frame, the maximum likelihood label is selected, and the time-series of chord labels is run-length encoded to form the estimated annotation for the track.
+The second model, \emph{CR2}, uses a second bi-GRU layer to map $h(t)$ to an intermediate representation $h_2(t)$ prior to frame-wise decoding.
+To keep the number of parameters roughly comparable between \emph{CR1} and \emph{CR2}, we set the dimensionality of encoder and decoder GRUs to 256.
+
+For each configuration, the entire model is trained end-to-end.
+While both architectures have access to the entire observation sequence, \emph{CR2} may be better at capturing long-range interactions.
+This should allow the encoder to focus on short-term smoothing and local context, while the decoder can model chord progressions and global context.
+In the \emph{CR1} model, the encoder is responsible for both short- and long-range interactions.
+
+At test time, the maximum likelihood label is selected for each frame, and the series of chord labels is run-length encoded to form the estimated annotation for the track.
 
 
 \subsection{Chord vocabulary simplification}
@@ -322,7 +339,7 @@ The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), an
 The CR models described above map each hidden state vector to a fixed vocabulary produced by the chord simplification strategy described in \Cref{sec:vocab}.
 They can be optimized in the usual way by minimizing a multi-class classification loss (cross-entropy), but this approach has some clear drawbacks.
 
-First, it does not leverage the structure of chord space.
+First, it does not leverage the inherent structure of the space of chords.
 If the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj}.
 This is at odds with evaluation (and, arguably, application utility), where predictions are evaluated along multiple dimensions, such as capturing the root, third, or fifth.
 More generally, some mistakes are simply more severe than others from a transcription perspective, and this is not reflected in a 1-of-K classification formulation.
@@ -337,8 +354,8 @@ This class provides little useful information to the model while training.
 At test time, it would be beneficial if the model could predict ``nearby'' chords, but multi-class training provides little incentive to learn this behavior.
 
 
-To counteract these effects, we introduce a structured representation of chords, depicted in \Cref{fig:encoding}.
-This representation is inspired by the standard evaluation criteria for chord recognition, which operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass})~\cite{raffel2014mir_eval}.
+To counteract these effects, we introduce a structured representation, depicted in \Cref{fig:encoding}.
+This is inspired by the standard evaluation criteria for chord recognition, which operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass})~\cite{raffel2014mir_eval}.
 This representation can be computed for any chord in the reference annotation, and provided as a secondary supervision signal to the model, thereby helping it learn common features shared by similar chords.
 At prediction time, the structured representation can be treated as output, or as an intermediate representation which contribute to the chord label prediction.
 
@@ -350,19 +367,16 @@ At prediction time, the structured representation can be treated as output, or a
     The special symbols \texttt{N,X} are mapped to an extra root/bass class denoted as \texttt{N}, and the all-zeros pitch vector.\label{fig:encoding}}
 \end{figure}
 
-The structured models (denoted as \emph{CR1/2+S}), depicted in \Cref{fig:crnn2}, predict for each frame $t$ the root pitch class (\texttt{C}--\texttt{B}, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
+The structured models (denoted as \emph{CR1/2+S}), depicted in \Cref{fig:architectures}, predict for each frame $t$ the root pitch class (\texttt{C}--\texttt{B}, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
 Root and bass estimation are modeled as a multi-class prediction with a soft-max non-linearity.
 Pitch class prediction is modeled as a multi-label prediction, and uses a logistic (sigmoid) non-linearity.
 This results in an idealized chroma representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}, but predicted from the hidden state of an RNN rather than a spectrogram patch.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{crnn2}
-    \caption{The structured convolutional encoder, recurrent decoder network, denoted as \emph{CR2+S}.
-    The encoder uses the same architecture depicted in \Cref{fig:crnn2}.
-    The deep decoder (\emph{CR2}) uses two bi-directional recurrent decoders to integrate information across time.
-    The structured model (\emph{CR2+S}) predicts the active pitch classes, root, and bass from the second recurrent layer's hidden state.
-    The hidden state, root, pitch classes, and bass predictions are then concatenated and used as inputs to the chord prediction layer.\label{fig:crnn2}}
+    \includegraphics[width=\columnwidth]{architectures}
+    \caption{Block diagrams of all architectures described in \Cref{sec:methods}.
+    The \emph{encoder} block is depicted in \Cref{fig:encoder}.\label{fig:architectures}}
 \end{figure}
 
 In general, it is not trivial to invert the root-chroma-bass representation to a unique chord label.
@@ -371,7 +385,7 @@ During training, the structured models learn to minimize the sum of losses acros
 In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
 A summary of all model architectures is provided in \Cref{tab:models}.
 
-\begin{table}
+\begin{table}[t]
     \centering
     \caption{Summary of model depth and size.\label{tab:models}}
     \begin{tabular}{lrr}
@@ -391,7 +405,6 @@ A summary of all model architectures is provided in \Cref{tab:models}.
 \label{sec:muda}
 To increase training set variability, we apply pitch-shifting data augmentation using MUDA~\cite{mcfee2015software}.
 For each training example, 12 deformations are generated by shifting up or down by between 1--6 semitones.
-Testing and validation examples are not augmented.
 Because each observation exists in all twelve root classes, this provides a brute-force, approximate root invariance to the model.
 Models trained with data augmentation are denoted by \emph{+A}.
 
@@ -435,7 +448,7 @@ For all models, validation score is determined solely by label prediction loss (
 %   maximum 100 epochs
 
 %   Keras + tensorflow
-All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.\footnote{Source code and trained models will be made available upon publication.}
+All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.\footnote{Code and trained models will be made available upon publication.}
 
 \subsection{Results}
 
@@ -507,7 +520,7 @@ The model still appears to struggle with 6th and suspended chords, which account
 The bottom row corresponds to out-of-gamut \texttt{X}-chords, which map overwhelmingly to \texttt{maj} and \texttt{min}.
 This can be explained by examining which labels map to \texttt{X} during simplification.
 There are 4557 instances of such chords in the corpus (2.2\% of the data), and of these, 2091 are 1-chords (only the root) and 2365 are power chords (root+fifth), neither of which map unambiguously onto the simplified vocabulary.
-The model appears to be resolving these points toward the more commonly used \texttt{min} and \texttt{maj} qualities.
+The model appears to resolve these toward the more commonly used \texttt{min} and \texttt{maj} qualities.
 
 \begin{figure}
     \centering
