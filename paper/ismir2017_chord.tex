@@ -162,7 +162,7 @@ In recent years, deep learning methods have been increasingly popular for chord 
 The majority of existing systems are trained in two stages. 
 First, a model is built first to encode short patches of audio, \eg, as an idealized chroma vector~\cite{boulanger2013audio,korzeniowski2016feature} or likelihood distribution over chord categories~\cite{humphrey2015four,sigtia2015audio,zhou2015chord,deng2016hybrid}.
 Second, a dynamics model integrates the time-series of learned representations to produce a sequence of predicted labels, \eg, using an HMM~\cite{humphrey2015four,zhou2015chord}, recurrent neural network (RNN)~\cite{boulanger2013audio,sigtia2015audio}, or simple point-wise prediction~\cite{korzeniowski2016feature}.
-The models proposed in this work differ in that they are jointly trained end-to-end from spectral features, and learn the internal representation along with the dynamics using multiple recurrent layers.
+The models proposed here differ in that they are jointly trained end-to-end from spectral features, and learn the internal representation along with the dynamics using multiple recurrent layers.
 
 Regardless of the model architecture, it is common to exploit some structural properties of chords, \eg, by tying model parameters for the same chord quality across roots~\cite{humphrey2015four}, or rotating chroma vectors through all possible root positions during training~\cite{cho2014improved}.
 Although the methods we propose do not model quality independent of root, they do model active pitch class sets independently.
@@ -233,12 +233,12 @@ The models we investigate fall under the umbrella of \emph{encoder-decoder} arch
 The \emph{encoder} component maps time-varying input (audio) into a latent feature space, while the \emph{decoder} component maps from the latent feature space to the output space (chord labels).
 
 \subsubsection{The encoder architecture}
-The encoder module is common to all models in this work, and depicted in \Cref{fig:encoder}.
+The encoder, and depicted in \Cref{fig:encoder}, is common to all models considered in this paper.
 Input audio is represented as a $T\times F$ time-series of log-power constant-Q transform (CQT) spectra (for $T$ frames and $F$ frequency bands).
-After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single two-dimensional $5\times5$ filter, followed by a bank of $36$ single-frame, one-dimensional convolutional filters, resulting in a $T\times 36$ feature encoding.
+After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single two-dimensional $5\times5$ filter, followed by a bank of $36$ single-frame, one-dimensional convolutional filters, resulting in a $T\times 36$ feature map.
 Both layers use rectified linear (ReLU) activations.
 The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to learn to suppress transients and vibrato while emphasizing sustained tones.
-The second layer summarizes the harmonic content of each frame, and can be interpreted as a local feature extractor.
+The second layer summarizes the pitch content of each frame, and can be interpreted as a local feature extractor.
 
 \begin{figure}[t]
     \centering
@@ -262,8 +262,8 @@ The parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, transiti
 When an element of the update vector ${u(t)}_j \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h(t)}_j \leftarrow {h(t-1)}_j$.
 Otherwise, if $r(t) \approx 1$, then $h(t)$ evolves according to standard RNN dynamics.
 However, when $r(t) \approx 0$, the $h$ term in~\eqref{eq:candidate} goes to 0 and the update \emph{resets} and depends only on the input $x(t)$.
-In this way, the GRU model can persist a hidden state across arbitrary long spans of time, and encode variable-length temporal dependencies.
-These properties make the GRU model appealing for chord recognition, where temporal dependencies are often variable, long-range, and subject to sudden changes rather than gradual evolution.
+This allows the GRU model to persist a hidden state across arbitrarily long spans of time, and capture variable-length temporal dependencies.
+These properties make the GRU model appealing for chord recognition, where dependencies may span long ranges, and are subject to sudden changes rather than gradual evolution.
 
 The bi-directional variant consists of two independent GRUs, one running in each direction, whose hidden state vectors are concatenated to produce the bi-directional hidden state vector $h(t)$.
 This layer integrates over the entirety of the input signal, and provides temporal smoothing and context for the encoded feature representation.
@@ -275,14 +275,14 @@ This layer integrates over the entirety of the input signal, and provides tempor
 %    \item[CR2] a stack of two Bi-GRU layers, each with 256 hidden state dimension (128 in each direction, per layer). The hidden state from the first layer is treated as input to the second.
 %\end{description}
 We investigate two models for decoding $h(t)$ to the sequence of chord labels $\hat{y}(t)$.
-The first model, \emph{CR1}, decodes each frame independently:
+The first model, denoted \emph{CR1}, decodes each frame independently:
 \begin{equation}
-    \hat{y}(t) := \text{softmax}\left(W_y h(t) + b_y\right),
+    \hat{y}(t) := \text{softmax}\left(W_y h(t) + b_y\right),\label{eq:decode}
 \end{equation}
 where the soft-max operates over the chord vocabulary $V$.
 For the \emph{CR1} architecture, we set the dimensionality of the hidden state vector to 512 (256 for each direction).
 
-The second model, \emph{CR2}, uses a second bi-GRU layer to map $h(t)$ to an intermediate representation $h_2(t)$ prior to frame-wise decoding.
+The second model, denoted \emph{CR2}, uses a second bi-GRU layer to map $h(t)$ to an intermediate representation $h_2(t)$ prior to frame-wise decoding by \cref{eq:decode}.
 To keep the number of parameters roughly comparable between \emph{CR1} and \emph{CR2}, we set the dimensionality of encoder and decoder GRUs to 256.
 
 For each configuration, the entire model is trained end-to-end.
@@ -310,21 +310,21 @@ At test time, the maximum likelihood label is selected for each frame, and the s
 %   5. resulting vocab = 12 * 14 + 2 = 170 classes
 %
 
-To formulate chord recognition as a classification task, we define a mapping of all valid chord descriptions to a finite vocabulary by the following procedure.\footnote{Here, a \emph{valid chord} is any string belonging to the formal language specification of Harte~\emph{et al.}~\cite{harte2005symbolic}, or the extended grammar implemented in the JAMS library~\cite{humphrey2014jams}.}
-First, suppressed notes, additional notes, and inversions are discarded, \eg:
+To formulate chord recognition as a classification task, we define a mapping of all valid chord descriptions to a finite vocabulary $V$.\footnote{Here, a \emph{valid chord} is any string belonging to the formal language specification of Harte~\emph{et al.}~\cite{harte2005symbolic}, or the extended grammar implemented in the JAMS library~\cite{humphrey2014jams}.}
+First, inversions and suppressed or additional notes are discarded, \eg:
 \begin{align*}
     \texttt{D}\flat\texttt{:maj(9)/3} 
     \quad\mapsto\quad \texttt{D}\flat\texttt{:maj/3}
     \quad\mapsto\quad \texttt{D}\flat\texttt{:maj}.
 \end{align*}
-Next, labels are decomposed into \emph{root} and \emph{pitch classes} (relative to the root) using the encoding functionality provided by \texttt{mir\_eval}~\cite{raffel2014mir_eval}, \eg:
+Next, labels are decomposed into \emph{root} and \emph{pitch classes} (relative to the root) using the functionality provided by \texttt{mir\_eval}~\cite{raffel2014mir_eval}:
 \begin{align*}
     \texttt{D}\flat\texttt{:maj} &\mapsto \begin{cases}
         1 & \text{root}\\
         (0, 4, 7) & \text{pitch classes}
     \end{cases}.
 \end{align*}
-The set of active pitch classes is matched against a set of 14 templates: \texttt{min, maj, dim, aug, min6, maj6, min7, maj7, dom7, dim7, hdim7, minmaj7, sus2, sus4}.
+The set of active pitch classes is matched against 14 templates: \texttt{min, maj, dim, aug, min6, maj6, min7, maj7, dom7, dim7, hdim7, minmaj7, sus2, sus4}.
 The root and matched template are combined, and mapped to a canonical form to resolve enharmonic equivalences:
 \begin{align*}
     \left(1, (0, 4, 7) \right) &\mapsto \texttt{C}\sharp\texttt{:maj}.
@@ -349,7 +349,7 @@ This can render certain chords ambiguous, and can introduce discrepancies betwee
 In the \texttt{D}$\flat$\texttt{:maj{(9)}/3} example provided in \Cref{sec:vocab}, the simplified chord \texttt{C}$\sharp$\texttt{:maj} would imply the absence of \texttt{D}$\sharp$, even though it was explicitly included in the original annotation and should be expected in the signal.
 This introduces label noise to the model, and may negatively impact accuracy.
 
-Third, out-of-gamut chords all map to a common class \texttt{X}, despite having potentially disparate tonal content.
+Third, out-of-gamut chords all map to a common class \texttt{X}, despite having disparate roots or general tonal content.
 This class provides little useful information to the model while training.
 At test time, it would be beneficial if the model could predict ``nearby'' chords, but multi-class training provides little incentive to learn this behavior.
 
@@ -379,7 +379,7 @@ This results in an idealized chroma representation similar to that of Korzeniows
     The \emph{encoder} block is depicted in \Cref{fig:encoder}.\label{fig:architectures}}
 \end{figure}
 
-In general, it is not trivial to invert the root-chroma-bass representation to a unique chord label.
+In general, it is not trivial to invert the root-pitch-bass representation to a unique chord label.
 Therefore, these three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
 During training, the structured models learn to minimize the sum of losses across all outputs.
 In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
