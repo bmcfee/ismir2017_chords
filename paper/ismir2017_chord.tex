@@ -89,7 +89,7 @@ While most systems model the chord recognition task as a (multi-class) classific
 
 In this work, we develop a deep convolutional-recurrent model for automatic chord recognition over a vocabulary of 170 classes.
 To exploit structural relationships between chord classes, the model is trained to produce both the time-varying chord label sequence as well as binary encodings of chord roots and qualities.
-This binary encoding directly exposes similarities between related classes, allowing the model to learn a more coherent representation of pitch simultaneities.
+This binary encoding directly exposes similarities between related classes, allowing the model to learn a more coherent representation of simultaneous pitch content.
 Evaluations on a corpus of 1217 annotated recordings demonstrate substantial improvements compared to previous models.
 \end{abstract}
 %
@@ -102,22 +102,23 @@ Evaluations on a corpus of 1217 annotated recordings demonstrate substantial imp
 % These classes are rare in the common datasets, so modeling them is hard
 
 % But we can leverage the structure of chord space to better exploit available data
+%TODO: citations needed
 Automatic chord recognition systems have been an active area of research within music informatics for quite some time.
 These systems take as input an audio signal, and produce a time-varying symbolic representation of the signal in terms of \emph{chord labels}, which encode simultaneous pitch class content, such as \texttt{C:maj} or \texttt{G:hdim7}.
 Early systems focused on simplified versions of this task, by predicting only the root note and \emph{major} or \emph{minor} qualities, or \emph{no-chord} (\texttt{N}).
-More recently, interest has shifted toward the \emph{large-vocabulary} regime, where a broader class of chord qualities must be estimated from the signal, such as triads, sixths, sevenths, and suspended chords.
+More recently, interest has shifted toward the \emph{large-vocabulary} regime, where a broader class of chord qualities must be estimated, such as triads, sixths, sevenths, and suspended chords.
 
 Typical chord recognition systems model the task as a time-varying multi-class classification problem.
 This approach may be reasonable for the small-vocabulary regime, where the classes are sufficiently distinct to be modeled as unrelated, and each class may be observed with approximately uniform probability.
-However, in the large-vocabulary, the multi-class formulation ignores the structural similarity between related chords, such as the shared notes between \emph{C:min} and \emph{C:min7}.
+However, in the large-vocabulary, the multi-class formulation ignores the structural similarity between related chords, such as the shared notes between \texttt{C:min} and \texttt{C:min7}.
 Moreover, the distribution of classes becomes highly non-uniform, thereby making it difficult to model these relationships from purely symbolic representations with no additional structure.
 We posit that leveraging known relationships between chord classes in terms of common roots and shared pitch classes can help mitigate the problem of observation bias, resulting in more accurate models of rare chord classes.
 
 \subsection{Our contributions}
 
-In this work, we address the problem of large-vocabulary chord recognition by introducing a structured representation of chord qualities.
+In this work, we address the problem of large-vocabulary chord recognition by introducing a structured representation of chord qualities, which decouples the problem of detecting roots and pitch classes from the problem of mapping these properties onto symbolic labels.
 We integrate this representation with deep, convolutional-recurrent neural networks, which are trained end-to-end to predict time-varying chord sequences from spectral audio representations.
-The proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models.
+The proposed models achieve substantially higher accuracy than previous models based on convolutional networks and hidden Markov models, resulting in absolute gains of 4--5\% in the most difficult categories (sevenths and tetrads).
 
 %
 \section{Related work}
@@ -368,6 +369,23 @@ In general, it is not trivial to invert the root-chroma-bass representation to a
 Therefore, these three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
 During training, the structured models learn to minimize the sum of losses across all outputs.
 In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
+A summary of all model architectures is provided in \Cref{tab:models}.
+
+\begin{table}
+    \centering
+    \caption{Summary of model depth and size.\label{tab:models}}
+    \begin{tabular}{lrr}
+        \toprule
+        Model   & Layers & \# Parameters\\
+        \midrule
+        CR1     & 5 & 545,098\\
+        CR1+S   & 8 & 571,052\\
+        CR2     & 6 & 473,930\\
+        CR2+S   & 9 & 490,156\\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 
 \subsection{Data augmentation}
 \label{sec:muda}
@@ -401,7 +419,7 @@ Signals were analyzed at 44.1KHz with a hop length of 4096 samples, resulting in
 \subsection{Training}
 % training setup
 All models are trained on 8-second patches (86 frames), though the models directly generalize to arbitrarily long inputs.
-For tracks with multiple reference annotations, the output is selected uniformly at random from all references for each patch.
+For tracks with multiple reference annotations, the output is selected uniformly at random from all references for the patch, which reduces eliminates sampling bias toward specific annotators.
 %   8sec patches (83 frames)
 %   32 patches per batch
 %   512 batches per epoch
@@ -471,7 +489,7 @@ The combined effect of structured training, deep decoder, and data augmentation 
 \subsection{Error analysis}
 
 To get some more insight about the mistakes made by the model at test time, we illustrate the frame-wise, within-root quality confusion matrix for the \emph{CR2+S+A} model in \Cref{fig:confusion}.
-For each frame of a test track, its true (simplified) label is compared to the label predicted by the model if they match at the root.
+For each frame of a test track, its (simplified) reference label is compared to the label estimated by the model if they match at the root.
 Results are then aggregated across all test tracks, and normalized by (reference quality) frequency to produce the confusion matrix.
 Under this evaluation, the \emph{CR2+S+A} achieves 63.6\% accuracy of correctly identifying the simplified chord label (root and quality) at the frame level.
 
@@ -479,13 +497,13 @@ Under this evaluation, the \emph{CR2+S+A} achieves 63.6\% accuracy of correctly 
     \centering
     \includegraphics[width=\columnwidth]{qualconf}
     \caption{Within-root, frame-wise quality confusions for the best performing model \emph{CR2+S+A}.
-    The value at row $i$ column $j$ corresponds to fraction of frames labeled as class $i$ but predicted as class $j$.
+    The value at row $i$ column $j$ corresponds to the fraction of frames labeled as class $i$ but predicted as class $j$.
     Results are aggregated across frames over all test tracks.\label{fig:confusion}}
 \end{figure}
 
-In \Cref{fig:confusion}, the first obvious trend is a bias toward \texttt{min} and \texttt{maj}, in accordance with the natural bias in the training set.
-Note, however, that the confusions are generally understandable as simplifications of true labels, \eg, \texttt{min7}$\rightarrow$\texttt{min} and (\texttt{maj7},\texttt{7})$\rightarrow$\texttt{maj}.
-The model still appears to struggle with 6th and suspended chords, which account for 1.5\% and 2.5\% of the data (by duration), respectively.
+In \Cref{fig:confusion}, the first obvious trend is a bias toward \texttt{min} and \texttt{maj}, in accordance with the natural bias in the training set (13.6\% and 52.5\% of the data, respectively, by duration).
+Note, however, that the confusions are generally understandable as simplifications: \eg, (\texttt{min7},\texttt{minmaj7})$\rightarrow$\texttt{min} and (\texttt{maj7},\texttt{7})$\rightarrow$\texttt{maj}.
+The model still appears to struggle with 6th and suspended chords, which account for 1.5\% and 2.5\% of the data, respectively.
 The bottom row corresponds to out-of-gamut \texttt{X}-chords, which map overwhelmingly to \texttt{maj} and \texttt{min}.
 This can be explained by examining which labels map to \texttt{X} during simplification.
 There are 4557 instances of such chords in the corpus (2.2\% of the data), and of these, 2091 are 1-chords (only the root) and 2365 are power chords (root+fifth), neither of which map unambiguously onto the simplified vocabulary.
@@ -498,15 +516,16 @@ The model appears to be resolving these points toward the more commonly used \te
     Positive values along the diagonal indicate increased accuracy for \emph{CR2+S+A}.\label{fig:confdelta}}
 \end{figure}
 
-For comparison purposes, the difference in the confusion matrices between the structured model \emph{CR2+S+A} and the unstructured model \emph{CR2+A} is depicted in \Cref{fig:confdelta}.
+To understand the influence of structured training, \Cref{fig:confdelta} illustrates the difference between the confusion matrices of the structured model \emph{CR2+S+A} and the unstructured model \emph{CR2+A}.
 Here, positive values (red) along the diagonal indicate increased accuracy for the structured model, while negative values along the diagonal (blue) indicate decreased accuracy.
 The net effect is positive, increasing accuracy by +0.8\% over \emph{CR2+A}, which achieves accuracy of 62.8\%.
 
 Despite a slight degradation in accuracy for \texttt{maj7}, there is a substantial increase in accuracy for \texttt{aug}, \texttt{dim7}, \texttt{hdim7}, and modest improvement for \texttt{sus4}.
-Moreover, there is a consistent reduction of confusions to \emph{maj}, illustrated by the negative values in the second column, which indicates that the structured model is more robust to quality bias in the training set.
+Moreover, there is a consistent reduction of confusions to \emph{maj}, illustrated by the negative values in the second column.
+This indicates that the structured model is more robust to quality bias in the training set.
 Compared to the unstructured model, the structured model reduces confusions from \texttt{aug} to (\texttt{maj}, \texttt{7}), and \texttt{dim7} to (\texttt{min}, \texttt{7}, \texttt{N}).
 While \emph{CR2+S+A} still performs poorly on the rarest class \texttt{minmaj7} (0.03\% of the data), compared to \emph{CR2+A}, it resolves toward \texttt{min} more often and \texttt{min7} less often.
-This indicates that the structured model is better at abstainining from predicting a seventh if it appears unlikely, rather than predict it in the wrong position.
+This indicates that the structured model is better at abstaining from predicting a seventh if it appears unlikely, rather than predict it in the wrong position.
 
 
 \section{Conclusion}
