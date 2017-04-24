@@ -1,5 +1,4 @@
 % TODO:
-%   - add cites to intro
 %   - add cites to data set
 % -----------------------------------------------
 % Template for ISMIR Papers
@@ -108,10 +107,9 @@ Evaluations on a corpus of 1217 annotated recordings demonstrate substantial imp
 % These classes are rare in the common datasets, so modeling them is hard
 
 % But we can leverage the structure of chord space to better exploit available data
-%TODO: citations needed
-Automatic chord recognition systems have been an active area of research within music informatics for quite some time.
+Automatic chord recognition systems have been an active area of research within music informatics for nearly two decades~\cite{fujishima1999realtime}.
 These systems take as input an audio signal, and produce a time-varying symbolic representation of the signal in terms of \emph{chord labels}, which encode simultaneous pitch class content, such as \texttt{C:maj} or \texttt{G:hdim7}.
-Early systems focused on simplified versions of this task, by predicting only the root note and \emph{major} or \emph{minor} qualities, or \emph{no-chord} (\texttt{N}).
+Many early systems focused on simplified versions of this task, by predicting only the root note and \emph{major} or \emph{minor} qualities, or \emph{no-chord} (\texttt{N}).
 More recently, interest has shifted toward the \emph{large-vocabulary} regime, where a broader class of chord qualities must be estimated, such as triads, sixths, sevenths, and suspended chords.
 
 Typical chord recognition systems model the task as a time-varying multi-class classification problem.
@@ -139,6 +137,7 @@ Systems like Chordino~\cite{matthias2010a} and HPA~\cite{ni2012end} extend this 
 In these systems, bass is modeled by weighting or partitioning the frequency range to produce distinct \emph{bass} and \emph{treble chroma} observations.
 The $K$-stream HMM takes this idea a step further by modeling $K$ distinct frequency sub-bands, though it does not explicitly infer bass~\cite{cho2014improved}.
 The structured representation we describe in \Cref{sec:methods} differs in that root, bass, and chord quality are jointly inferred from the entire spectrum, and it makes no assumptions about absolute height.
+Weller~\etal~\cite{weller2009structured} applied structured training to the dynamics model, but did not exploit the structure between chord labels.
 
 % 2010 - chordino, 159 but not quite the same
 %   bass / treble tracking (pre-determined split)
@@ -240,14 +239,14 @@ The encoder, and depicted in \Cref{fig:encoder}, is common to all models conside
 Input audio is represented as a $T\times F$ time-series of log-power constant-Q transform (CQT) spectra (for $T$ frames and $F$ frequency bands).
 After batch normalization~\cite{ioffe2015batch}, the first convolutional layer consists of a single two-dimensional $5\times5$ filter, followed by a bank of $36$ single-frame, one-dimensional convolutional filters, resulting in a $T\times 36$ feature map.
 Both layers use rectified linear (ReLU) activations.
-The first layer can be interpreted as a local harmonic saliency enhancer, as it tends to learn to suppress transients and vibrato while emphasizing sustained tones.
+The first layer can be interpreted as a harmonic saliency enhancer, as it tends to learn to suppress transients and vibrato while emphasizing sustained tones.
 The second layer summarizes the pitch content of each frame, and can be interpreted as a local feature extractor.
 
 \begin{figure}[t]
     \centering
     %\includegraphics[width=\columnwidth]{crnn1}
     \includegraphics[width=\columnwidth]{encoder-r}
-    \caption{The recurrent encoder network architecture, which encodes the input (CQT) as a sequence of hidden state vectors $h(t) \in \mathbb{R}^D$.\label{fig:encoder}}
+    \caption{The encoder module uses a convolutional-recurrent network architecture to map the input (CQT frames) to a sequence of hidden state vectors $h(t) \in \mathbb{R}^D$.\label{fig:encoder}}
 \end{figure}
 
 Finally, the local features are encoded by a bi-directional gated recurrent unit (GRU) model~\cite{cho2014learning}.
@@ -348,7 +347,7 @@ They can be optimized in the usual way by minimizing a multi-class classificatio
 
 First, it does not leverage the inherent structure of the space of chords.
 If the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj}.
-This is at odds with evaluation (and, arguably, application utility), where predictions are evaluated along multiple dimensions, such as capturing the root, third, or fifth.
+This is at odds with evaluation, where predictions are evaluated along multiple dimensions, such as capturing the root, third, or fifth.
 More generally, some mistakes are simply more severe than others from a transcription perspective, and this is not reflected in a 1-of-K classification formulation.
 
 Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
@@ -370,8 +369,8 @@ At prediction time, the structured representation can be treated as output, or a
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.9\columnwidth]{encoding}
-    \caption{Target chords are represented both as simplified, canonical forms (\Cref{sec:vocab}), and as binary vectors encoding the root, bass, and pitch class content (\Cref{sec:encoding}).
-    The special symbols \texttt{N,X} are mapped to an extra root/bass class denoted as \texttt{N}, and the all-zeros pitch vector.\label{fig:encoding}}
+    \caption{Target chords are represented in both simplified canonical form (\Cref{sec:vocab}), and as binary vectors encoding the root, bass, and pitch classes (\Cref{sec:encoding}).
+    The special symbols \texttt{N,X} map to an extra root/bass class \texttt{N}, and the all-zeros pitch vector.\label{fig:encoding}}
 \end{figure}
 
 The structured models (denoted as \emph{CR1/2+S}), depicted in \Cref{fig:architectures}, predict for each frame $t$ the root pitch class (\texttt{C}--\texttt{B}, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
@@ -391,7 +390,7 @@ In general, it is not trivial to invert the root-pitch-bass representation to a 
 Therefore, these three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
 During training, the structured models learn to minimize the sum of losses across all outputs.
 In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
-\begin{figure}
+\begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{encviz}
     \caption{The encoding and predicted chord labels for \emph{The Beatles --- Hold Me Tight} by model \emph{CR2+S+A}.\label{fig:encviz}}
@@ -440,7 +439,7 @@ We compare the proposed methods to two strong baselines: a deep convolutional ne
 %   librosa 0.5
 Feature extraction was performed with librosa 0.5.0~\cite{librosa050}.
 %   log cqt power, 36bpo, (C1 - C7) (260 bins)
-Each track was represented as a log-power constant-Q spectrogram with 36 bins per octave, spanning 6 octaves starting at C1, and clipped at 80dB below the peak power for the entire track.
+Each track was represented as a log-power constant-Q spectrogram with 36 bins per octave, spanning 6 octaves starting at C1, and clipped at 80dB below the peak.
 %   sr=44100, hop = 4096 => ~96ms frame rate
 Signals were analyzed at 44.1KHz with a hop length of 4096 samples, resulting in a frame rate of approximately 10.8Hz.
 
@@ -474,7 +473,7 @@ The main results of the evaluation are listed in \Cref{fig:results}, which illus
     \caption{Weighted recall scores for all methods under comparison.  Each dot represents the median score across all test points, with error bars covering the 95\% confidence interval estimated by bootstrap sampling.
         \emph{KHMM} denotes the K-stream HMM of Cho~\cite{cho2014improved}; \emph{DNN} denotes the convolutional network of Humphrey and Bello~\cite{humphrey2015four}.\label{fig:results}}
 \end{figure*}
-Each subplot reports the recall computed by \texttt{mir\_eval} of correctly estimating the following:
+Each subplot reports the recall scores computed by \texttt{mir\_eval}:
 \begin{itemize}
     \item \emph{root};
     \item \emph{thirds}: root and third;
@@ -525,8 +524,7 @@ Under this evaluation, the \emph{CR2+S+A} achieves 63.6\% accuracy of correctly 
     \centering
     \includegraphics[width=\columnwidth]{qualconf}
     \caption{Within-root, frame-wise quality confusions for the best performing model \emph{CR2+S+A}.
-    The value at row $i$, column $j$ corresponds to the fraction of frames labeled as class $i$ but predicted as class $j$.
-    Results are aggregated across frames over all test tracks.\label{fig:confusion}}
+    The value at row $i$, column $j$ corresponds to the fraction of frames labeled as class $i$ but predicted as class $j$.\label{fig:confusion}}
 \end{figure}
 
 In \Cref{fig:confusion}, the first obvious trend is a bias toward \texttt{min} and \texttt{maj}, in accordance with the natural bias in the training set (13.6\% and 52.5\% of the data, respectively, by duration).
@@ -548,12 +546,12 @@ To understand the influence of structured training, \Cref{fig:confdelta} illustr
 Here, positive values (red) along the diagonal indicate increased accuracy for the structured model, while negative values along the diagonal (blue) indicate decreased accuracy.
 The net effect is positive, increasing accuracy by +0.8\% over \emph{CR2+A}, which achieves accuracy of 62.8\%.
 
-Despite a slight degradation in accuracy for \texttt{maj7}, there is a substantial increase in accuracy for \texttt{aug}, \texttt{dim7}, \texttt{hdim7}, and modest improvement for \texttt{sus4}.
-Moreover, there is a consistent reduction of confusions to \emph{maj}, illustrated by the negative values in the second column.
+Despite a slight degradation for \texttt{maj7}, there are substantial improvements for \texttt{aug}, \texttt{dim7}, \texttt{hdim7}, and modest improvement for \texttt{sus4}.
+Moreover, the negative values in the second column reveal a consistent reduction of confusions to \emph{maj}.
 This indicates that the structured model is more robust to quality bias in the training set.
 Compared to the unstructured model, the structured model reduces confusions from \texttt{aug} to (\texttt{maj}, \texttt{7}), and \texttt{dim7} to (\texttt{min}, \texttt{7}, \texttt{N}).
-While \emph{CR2+S+A} still performs poorly on the rarest class \texttt{minmaj7} (0.03\% of the data), compared to \emph{CR2+A}, it resolves toward \texttt{min} more often and \texttt{min7} less often.
-This indicates that the structured model is better at abstaining from predicting a seventh if it appears unlikely, rather than predict it in the wrong position.
+The \emph{CR2+S+A} still performs poorly on the rarest class \texttt{minmaj7} (0.03\% of the data), but compared to \emph{CR2+A}, it resolves toward \texttt{min} more often and \texttt{min7} less often.
+The structured model appears to be better at abstaining from predicting a seventh if it appears unlikely, rather than predict the wrong seventh.
 
 
 \section{Conclusion}
