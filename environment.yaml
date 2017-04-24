@@ -1,0 +1,241 @@
+name: py34
+channels:
+- !!python/unicode
+  'conda-forge'
+- !!python/unicode
+  'defaults'
+dependencies:
+- !!python/unicode
+  'backports_abc=0.5=py34_0'
+- !!python/unicode
+  'blas=1.1=openblas'
+- !!python/unicode
+  'ca-certificates=2017.1.23=0'
+- !!python/unicode
+  'cairo=1.14.6=0'
+- !!python/unicode
+  'certifi=2017.1.23=py34_0'
+- !!python/unicode
+  'configparser=3.5.0=py34_0'
+- !!python/unicode
+  'coverage=4.3.1=py34_0'
+- !!python/unicode
+  'cycler=0.10.0=py34_0'
+- !!python/unicode
+  'decorator=4.0.10=py34_0'
+- !!python/unicode
+  'entrypoints=0.2.2=py34_1'
+- !!python/unicode
+  'fontconfig=2.11.1=6'
+- !!python/unicode
+  'freetype=2.6.3=1'
+- !!python/unicode
+  'gettext=0.19.7=1'
+- !!python/unicode
+  'glib=2.51.4=0'
+- !!python/unicode
+  'h5py=2.6.0=np111py34_7'
+- !!python/unicode
+  'harfbuzz=1.3.4=0'
+- !!python/unicode
+  'hdf5=1.8.17=10'
+- !!python/unicode
+  'icu=56.1=4'
+- !!python/unicode
+  'ipykernel=4.5.2=py34_0'
+- !!python/unicode
+  'ipython=5.1.0=py34_2'
+- !!python/unicode
+  'ipython_genutils=0.2.0=py34_0'
+- !!python/unicode
+  'jinja2=2.9.5=py34_0'
+- !!python/unicode
+  'jpeg=9b=0'
+- !!python/unicode
+  'jsonschema=2.5.1=py34_0'
+- !!python/unicode
+  'jupyter_client=4.4.0=py34_0'
+- !!python/unicode
+  'jupyter_console=5.1.0=py34_0'
+- !!python/unicode
+  'jupyter_core=4.2.1=py34_0'
+- !!python/unicode
+  'libffi=3.2.1=3'
+- !!python/unicode
+  'libiconv=1.14=4'
+- !!python/unicode
+  'libpng=1.6.28=0'
+- !!python/unicode
+  'libsodium=1.0.10=0'
+- !!python/unicode
+  'libtiff=4.0.6=5'
+- !!python/unicode
+  'libxml2=2.9.3=8'
+- !!python/unicode
+  'markupsafe=0.23=py34_1'
+- !!python/unicode
+  'matplotlib=2.0.0=np111py34_1'
+- !!python/unicode
+  'mistune=0.7.3=py34_0'
+- !!python/unicode
+  'nbconvert=4.2.0=py34_0'
+- !!python/unicode
+  'nbformat=4.2.0=py34_0'
+- !!python/unicode
+  'ncurses=5.9=10'
+- !!python/unicode
+  'networkx=1.11=py34_0'
+- !!python/unicode
+  'nose=1.3.7=py34_2'
+- !!python/unicode
+  'numpy=1.11.3=py34_blas_openblas_200'
+- !!python/unicode
+  'openblas=0.2.19=1'
+- !!python/unicode
+  'openssl=1.0.2h=3'
+- !!python/unicode
+  'pandas=0.19.2=np111py34_1'
+- !!python/unicode
+  'pango=1.40.3=0'
+- !!python/unicode
+  'path.py=8.2.1=py34_0'
+- !!python/unicode
+  'patsy=0.4.1=py34_0'
+- !!python/unicode
+  'pcre=8.39=0'
+- !!python/unicode
+  'pexpect=4.2.1=py34_0'
+- !!python/unicode
+  'pickleshare=0.7.3=py34_0'
+- !!python/unicode
+  'pillow=4.0.0=py34_0'
+- !!python/unicode
+  'pip=9.0.1=py34_0'
+- !!python/unicode
+  'pixman=0.34.0=0'
+- !!python/unicode
+  'prompt_toolkit=1.0.9=py34_0'
+- !!python/unicode
+  'ptyprocess=0.5.1=py34_0'
+- !!python/unicode
+  'pygments=2.1.3=py34_1'
+- !!python/unicode
+  'pyparsing=2.1.10=py34_0'
+- !!python/unicode
+  'pyqt=4.11.4=py34_2'
+- !!python/unicode
+  'python-dateutil=2.6.0=py34_0'
+- !!python/unicode
+  'pytz=2016.10=py34_0'
+- !!python/unicode
+  'pyyaml=3.12=py34_0'
+- !!python/unicode
+  'pyzmq=16.0.2=py34_0'
+- !!python/unicode
+  'qt=4.8.7=3'
+- !!python/unicode
+  'qtconsole=4.2.1=py34_1'
+- !!python/unicode
+  'readline=6.2=0'
+- !!python/unicode
+  'scikit-image=0.12.3=np111py34_0'
+- !!python/unicode
+  'scikit-learn=0.18=np111py34_blas_openblas_203'
+- !!python/unicode
+  'scipy=0.18.1=np111py34_blas_openblas_201'
+- !!python/unicode
+  'seaborn=0.7.1=py34_0'
+- !!python/unicode
+  'setuptools=32.3.1=py34_0'
+- !!python/unicode
+  'simplegeneric=0.8.1=py34_0'
+- !!python/unicode
+  'sip=4.18=py34_1'
+- !!python/unicode
+  'six=1.10.0=py34_1'
+- !!python/unicode
+  'sqlite=3.16.2=0'
+- !!python/unicode
+  'statsmodels=0.8.0=np111py34_0'
+- !!python/unicode
+  'terminado=0.6=py34_0'
+- !!python/unicode
+  'theano=0.8.2=py34_0'
+- !!python/unicode
+  'tk=8.5.19=1'
+- !!python/unicode
+  'tornado=4.4.2=py34_0'
+- !!python/unicode
+  'traitlets=4.3.1=py34_0'
+- !!python/unicode
+  'wcwidth=0.1.7=py34_0'
+- !!python/unicode
+  'wheel=0.29.0=py34_0'
+- !!python/unicode
+  'xz=5.0.5=1'
+- !!python/unicode
+  'yaml=0.1.6=0'
+- !!python/unicode
+  'zeromq=4.1.5=0'
+- !!python/unicode
+  'zlib=1.2.11=0'
+- !!python/unicode
+  'backports=1.0=py34_0'
+- !!python/unicode
+  'get_terminal_size=1.0.0=py34_0'
+- !!python/unicode
+  'jbig=2.1=0'
+- !!python/unicode
+  'libgfortran=1.0=0'
+- !!python/unicode
+  'mkl=2017.0.1=0'
+- !!python/unicode
+  'mkl-rt=11.1=p0'
+- !!python/unicode
+  'mkl-service=1.1.2=py34_3'
+- !!python/unicode
+  'python=3.4.4=0'
+- pip:
+  - audioread==2.1.2
+  - backports-abc==0.5
+  - backports.shutil-get-terminal-size==1.0.0
+  - cffi==1.10.0
+  - crema (/home/bmcfee/git/crema)==0.0.1rc0
+  - cython==0.24
+  - future==0.15.2
+  - hcnn (/scratch/bmcfee/working/harmonic-cnn)==0.0.1
+  - ipython-genutils==0.2.0
+  - ipywidgets==6.0.0
+  - jams==0.2.2
+  - joblib==0.9.4
+  - jsonpickle==0.9.4
+  - jupyter-client==4.4.0
+  - jupyter-console==5.1.0
+  - jupyter-core==4.2.1
+  - jupyterlab==0.19.0
+  - jupyterlab-widgets==0.6.15
+  - keras==2.0.2
+  - keras-tqdm==2.0.0
+  - librosa==0.5.0
+  - mir-eval (/home/bmcfee/git/mir_eval)==0.4
+  - muda==0.1.3
+  - notebook==5.0.0
+  - overrides==1.7
+  - pescador==1.0.0
+  - presets==0.1.2
+  - prompt-toolkit==1.0.9
+  - protobuf==3.2.0
+  - pumpp==0.1.5
+  - pycparser==2.17
+  - pyrubberband==0.2.1
+  - pysoundfile==0.9.0.post1
+  - resampy==0.1.2
+  - scandir==1.3
+  - scikits.samplerate==0.3.4.dev0
+  - tensorflow-gpu==1.0.1
+  - tqdm==4.11.2
+  - vamp==1.1.0
+  - widgetslabextension==0.1.0
+  - widgetsnbextension==2.0.0
+prefix: !!python/unicode '/home/bmcfee/miniconda/envs/py34'
+
