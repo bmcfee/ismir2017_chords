@@ -1,6 +1,6 @@
 % TODO:
-%   - include viz of structured output for input cqt
-%   - sell it more
+%   - add cites to intro
+%   - add cites to data set
 % -----------------------------------------------
 % Template for ISMIR Papers
 % 2017 version, based on previous ISMIR templates
@@ -31,6 +31,9 @@
 \def\ie{\emph{i.e.}}
 \def\etc{\emph{etc.}}
 \def\etal{\emph{et al.}}
+
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
 
 
 % Title.
@@ -113,9 +116,9 @@ More recently, interest has shifted toward the \emph{large-vocabulary} regime, w
 
 Typical chord recognition systems model the task as a time-varying multi-class classification problem.
 This approach may be reasonable for the small-vocabulary regime, where the classes are sufficiently distinct to be modeled as unrelated, and each class may be observed with approximately uniform probability.
-However, in the large-vocabulary, the multi-class formulation ignores the structural similarity between related chords, such as the shared notes between \texttt{C:min} and \texttt{C:min7}.
+However, in the large-vocabulary setting, the multi-class formulation ignores the structural similarity between related chords, such as the shared notes between \texttt{C:min} and \texttt{C:min7}.
 Moreover, the distribution of classes becomes highly non-uniform, thereby making it difficult to model these relationships from purely symbolic representations with no additional structure.
-We posit that leveraging known relationships between chord classes in terms of common roots and shared pitch classes can help mitigate the problem of observation bias, resulting in more accurate models of rare chord classes.
+We posit that leveraging known relationships between chord classes in terms of common roots and shared pitch classes can help mitigate the problem of observation bias, resulting in more accurate models of rare classes.
 
 \subsection{Our contributions}
 
@@ -223,7 +226,7 @@ To the best of our knowledge, the proposed method is the first to exploit simila
 
 This section outlines the data preparation, architectures, and training strategies for the models under comparison.
 We consider three independent design choices: convolutional or recurrent decoding, the inclusion of structured output training, and the use of data augmentation.
-This results in eight model configurations, which are evaluated in the subsequent section.
+This results in eight model configurations.
 
 \subsection{Encoder-decoder models}
 
@@ -265,7 +268,7 @@ However, when $r(t) \approx 0$, the $h$ term in~\eqref{eq:candidate} goes to 0 a
 This allows the GRU model to persist a hidden state across arbitrarily long spans of time, and capture variable-length temporal dependencies.
 These properties make the GRU model appealing for chord recognition, where dependencies may span long ranges, and are subject to sudden changes rather than gradual evolution.
 
-The bi-directional variant consists of two independent GRUs, one running in each direction, whose hidden state vectors are concatenated to produce the bi-directional hidden state vector $h(t)$.
+The bi-directional variant consists of two independent GRUs, one running in each time direction, whose hidden state vectors are concatenated to produce the bi-directional hidden state vector $h(t)$.
 This layer integrates over the entirety of the input signal, and provides temporal smoothing and context for the encoded feature representation.
 
 \subsubsection{Decoder architectures}
@@ -274,18 +277,22 @@ This layer integrates over the entirety of the input signal, and provides tempor
 %    \item[CR1] the encoder Bi-GRU layer with 512 total hidden state dimensions (256 for each direction);
 %    \item[CR2] a stack of two Bi-GRU layers, each with 256 hidden state dimension (128 in each direction, per layer). The hidden state from the first layer is treated as input to the second.
 %\end{description}
-We investigate two models for decoding $h(t)$ to the sequence of chord labels $\hat{y}(t)$.
+We investigate two models for decoding $h(t)$ to the sequence of chord labels $\hat{y}(t)$, depicted in \Cref{fig:architectures}.
 The first model, denoted \emph{CR1}, decodes each frame independently:
 \begin{equation}
     \hat{y}(t) := \text{softmax}\left(W_y h(t) + b_y\right),\label{eq:decode}
 \end{equation}
-where the soft-max operates over the chord vocabulary $V$.
+where the soft-max operates over the chord vocabulary $V$, producing $\hat{y}(t) \in {[0,1]}^{|V|}$.
 For the \emph{CR1} architecture, we set the dimensionality of the hidden state vector to 512 (256 for each direction).
 
-The second model, denoted \emph{CR2}, uses a second bi-GRU layer to map $h(t)$ to an intermediate representation $h_2(t)$ prior to frame-wise decoding by \cref{eq:decode}.
-To keep the number of parameters roughly comparable between \emph{CR1} and \emph{CR2}, we set the dimensionality of encoder and decoder GRUs to 256.
+The second model, denoted \emph{CR2}, uses a bi-GRU layer to map $h(t)$ to an intermediate representation $h_2(t)$ prior to frame-wise decoding by \cref{eq:decode}.
+To keep the number of parameters comparable between \emph{CR1} and \emph{CR2}, we set the dimensionality of encoder and decoder GRUs to 256.
 
-For each configuration, the entire model is trained end-to-end.
+For each configuration, all model parameters $\Theta$ are jointly trained to maximize the log-likelihood of reference chord labels:
+\begin{equation}
+\argmax_\Theta    \sum_t \sum_{c \in V} y_c(t) \log \hat{y}_c(t),
+\end{equation}
+where the reference labels are one-hot encoded vectors $y(t) \in {\{0,1\}}^{|V|}$.
 While both architectures have access to the entire observation sequence, \emph{CR2} may be better at capturing long-range interactions.
 This should allow the encoder to focus on short-term smoothing and local context, while the decoder can model chord progressions and global context.
 In the \emph{CR1} model, the encoder is responsible for both short- and long-range interactions.
@@ -346,18 +353,18 @@ More generally, some mistakes are simply more severe than others from a transcri
 
 Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
 This can render certain chords ambiguous, and can introduce discrepancies between the (simplified) annotation and the corresponding acoustic content.
-In the \texttt{D}$\flat$\texttt{:maj{(9)}/3} example provided in \Cref{sec:vocab}, the simplified chord \texttt{C}$\sharp$\texttt{:maj} would imply the absence of \texttt{D}$\sharp$, even though it was explicitly included in the original annotation and should be expected in the signal.
+Continuing the \texttt{D}$\flat$\texttt{:maj{(9)}/3} example, the simplification \texttt{C}$\sharp$\texttt{:maj} implies the absence of \texttt{D}$\sharp$, although it was explicitly included in the original annotation and should be expected in the signal.
 This introduces label noise to the model, and may negatively impact accuracy.
 
-Third, out-of-gamut chords all map to a common class \texttt{X}, despite having disparate roots or general tonal content.
+Third, out-of-gamut chords all map to a common class \texttt{X}, despite having disparate roots and tonal content.
 This class provides little useful information to the model while training.
 At test time, it would be beneficial if the model could predict ``nearby'' chords, but multi-class training provides little incentive to learn this behavior.
 
 
 To counteract these effects, we introduce a structured representation, depicted in \Cref{fig:encoding}.
 This is inspired by the standard evaluation criteria for chord recognition, which operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass})~\cite{raffel2014mir_eval}.
-This representation can be computed for any chord in the reference annotation, and provided as a secondary supervision signal to the model, thereby helping it learn common features shared by similar chords.
-At prediction time, the structured representation can be treated as output, or as an intermediate representation which contribute to the chord label prediction.
+This representation can be computed for any valid chord label, and provided as a secondary supervision signal to the model, thereby helping it learn common features shared by similar chords.
+At prediction time, the structured representation can be treated as output, or as an intermediate representation which contributes to the chord label prediction.
 
 
 \begin{figure}[t]
@@ -370,11 +377,12 @@ At prediction time, the structured representation can be treated as output, or a
 The structured models (denoted as \emph{CR1/2+S}), depicted in \Cref{fig:architectures}, predict for each frame $t$ the root pitch class (\texttt{C}--\texttt{B}, plus \texttt{N} for no-root), the bass pitch class, and the active pitch classes from the hidden state vector $h(t)$.
 Root and bass estimation are modeled as a multi-class prediction with a soft-max non-linearity.
 Pitch class prediction is modeled as a multi-label prediction, and uses a logistic (sigmoid) non-linearity.
-This results in an idealized chroma representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}, but predicted from the hidden state of an RNN rather than a spectrogram patch.
+This results in an idealized chroma representation similar to that of Korzeniowski and Widmer~\cite{korzeniowski2016feature}, but estimated from the full input observation rather than a fixed spectrogram patch.
+An illustrative example of this predicted encoding is provided in \Cref{fig:encviz}.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{architectures}
+    \includegraphics[width=0.8\columnwidth]{architectures}
     \caption{Block diagrams of all architectures described in \Cref{sec:methods}.
     The \emph{encoder} block is depicted in \Cref{fig:encoder}.\label{fig:architectures}}
 \end{figure}
@@ -383,22 +391,27 @@ In general, it is not trivial to invert the root-pitch-bass representation to a 
 Therefore, these three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
 During training, the structured models learn to minimize the sum of losses across all outputs.
 In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
-A summary of all model architectures is provided in \Cref{tab:models}.
-
-\begin{table}[t]
+\begin{figure}
     \centering
-    \caption{Summary of model depth and size.\label{tab:models}}
-    \begin{tabular}{lrr}
-        \toprule
-        Model   & Layers & \# Parameters\\
-        \midrule
-        CR1     & 5 & 545,098\\
-        CR1+S   & 8 & 571,052\\
-        CR2     & 6 & 473,930\\
-        CR2+S   & 9 & 490,156\\
-        \bottomrule
-    \end{tabular}
-\end{table}
+    \includegraphics[width=\columnwidth]{encviz}
+    \caption{The encoding and predicted chord labels for \emph{The Beatles --- Hold Me Tight} by model \emph{CR2+S+A}.\label{fig:encviz}}
+\end{figure}
+%A summary of all model architectures is provided in \Cref{tab:models}.
+
+%\begin{table}[t]
+%    \centering
+%    \caption{Summary of model depth and size.\label{tab:models}}
+%    \begin{tabular}{lrr}
+%        \toprule
+%        Model   & Layers & Parameters\\
+%        \midrule
+%        CR1     & 5 & 545,098\\
+%        CR2     & 6 & 473,930\\
+%        CR1+S   & 8 & 571,052\\
+%        CR2+S   & 9 & 490,156\\
+%        \bottomrule
+%    \end{tabular}
+%\end{table}
 
 
 \subsection{Data augmentation}
@@ -410,6 +423,8 @@ Models trained with data augmentation are denoted by \emph{+A}.
 
 
 \section{Evaluation}
+% TODO:
+%   cite isophonics, billboard, rwc, marl collections
 
 % cite: ejh2015
 %   1217, using the same 5-fold CV splits for comparison purposes
@@ -510,7 +525,7 @@ Under this evaluation, the \emph{CR2+S+A} achieves 63.6\% accuracy of correctly 
     \centering
     \includegraphics[width=\columnwidth]{qualconf}
     \caption{Within-root, frame-wise quality confusions for the best performing model \emph{CR2+S+A}.
-    The value at row $i$ column $j$ corresponds to the fraction of frames labeled as class $i$ but predicted as class $j$.
+    The value at row $i$, column $j$ corresponds to the fraction of frames labeled as class $i$ but predicted as class $j$.
     Results are aggregated across frames over all test tracks.\label{fig:confusion}}
 \end{figure}
 
@@ -543,7 +558,7 @@ This indicates that the structured model is better at abstaining from predicting
 
 \section{Conclusion}
 This work developed deep architectures and a structured training framework for chord recognition in large vocabularies.
-Although the proposed model improve over the baseline methods, there are clear directions forward in extending the ideas presented here.
+Although the proposed models improve over the baseline methods, there are clear directions forward in extending the ideas presented here.
 First, although the proposed model predicts the bass note, this feature is only used for establishing context in decoding, and the model does not predict inversions.
 Supporting inversion prediction would be a simple extension of the method described here, and would not require creating special vocabulary entries for each potential inversion.
 Second, the structured representation facilitates modeling infrequently observed, complex chords, and could readily be extended to support extended chords by using a multi-octave pitch class representation.
