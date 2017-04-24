@@ -1,5 +1,3 @@
-% TODO:
-%   - add cites to data set
 % -----------------------------------------------
 % Template for ISMIR Papers
 % 2017 version, based on previous ISMIR templates
@@ -422,14 +420,11 @@ Models trained with data augmentation are denoted by \emph{+A}.
 
 
 \section{Evaluation}
-% TODO:
-%   cite isophonics, billboard, rwc, marl collections
-
 % cite: ejh2015
 %   1217, using the same 5-fold CV splits for comparison purposes
 %   each training fold is split 75/25 for validation
 %   training set => 12x by data augmentation
-For evaluation, we used the dataset described by Humphrey and Bello~\cite{humphrey2015four}, which includes 1217 tracks from the Isophonics, Billboard, RWC Pop, and MARL collections.
+For evaluation, we used the dataset provided by Humphrey and Bello~\cite{humphrey2015four}, which includes 1217 tracks from the Isophonics, Billboard, RWC Pop, and MARL collections.
 To facilitate comparison with previous work, we retain the same 5-fold cross-validation splits, and randomly hold out 1/4 of each training set for validation.
 We compare the proposed methods to two strong baselines: a deep convolutional network~\cite{humphrey2015four} (denoted \emph{DNN}), and the K-stream HMM~\cite{cho2014improved} (denoted \emph{KHMM}).\footnote{Comparisons were facilitated using the pre-computed outputs provided at \url{https://github.com/ejhumphrey/ace-lessons}.}
 
@@ -455,12 +450,10 @@ Models are trained using mini-batches of 32 patches per batch, and 512 batches p
 We use the ADAM optimizer~\cite{kingma2014adam}, and reduce the learning rate if there is no improvement in validation score after 10 epochs.
 Training is stopped early if there is no improvement in validation score after 20 epochs, and limited to a maximum of 100 epochs total.
 For all models, validation score is determined solely by label prediction loss (cross-entropy).
-
 %   validation by decoder loss
 %   learning rate reduction after 10 epochs
 %   early stopping after 20 epochs
 %   maximum 100 epochs
-
 %   Keras + tensorflow
 All models were implemented with Keras~2.0 and Tensorflow~1.0~\cite{chollet2015keras, tensorflow2015-whitepaper}.\footnote{Code and trained models will be made available upon publication.}
 
@@ -487,10 +480,10 @@ Each subplot reports the recall scores computed by \texttt{mir\_eval}:
 From \Cref{fig:results}, several trends can be observed.
 First, data augmentation (\emph{+A} variants) provides a consistent and substantial improvement for all models.
 This is to be expected, since the \emph{CR} models do not separate root from quality.
-Note that DNN models root independent of quality, and KHMM was trained with chroma-rotation data augmentation, so it is unsurprising that augmentation is necessary to match performance of these methods.
+Note that DNN models these independently, and KHMM was trained with chroma-rotation data augmentation, so it is unsurprising that augmentation is necessary to match performance of these methods.
 
 Second, structured training (\emph{+S} variants) provides a modest, but consistent improvement, for both the shallow \emph{CR1} and deep \emph{CR2} decoder models.
-The difference is most pronounced in the \emph{root} evaluation, which makes sense because the structured models are explicitly trained to predict the root independently of the chord label.
+The difference is most pronounced in the \emph{root} evaluation, which is expected due to the explicit objective to correctly identify the root.
 
 Third, the deep decoder models \emph{CR2} provide another small, but consistent improvement over the shallow decoders \emph{CR1}.
 The aggregate scores are reported in \Cref{tab:results}; for brevity, only the models with data augmentation are included.
