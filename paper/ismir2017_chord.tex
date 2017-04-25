@@ -361,7 +361,7 @@ At test time, it would be beneficial if the model could predict ``nearby'' chord
 To counteract these effects, we introduce a structured representation, depicted in \Cref{fig:encoding}.
 This is inspired by the standard evaluation criteria for chord recognition, which operate over a decomposed representation of (\emph{root}, \emph{pitch classes}, \emph{bass})~\cite{raffel2014mir_eval}.
 This representation can be computed for any valid chord label, and provided as a secondary supervision signal to the model, thereby helping it learn common features shared by similar chords.
-At prediction time, the structured representation can be treated as output, or as an intermediate representation which contributes to the chord label prediction.
+At prediction time, the structured representation is used as an intermediate representation which contributes to the chord label prediction.
 
 
 \begin{figure}[t]
@@ -386,8 +386,10 @@ An illustrative example of this predicted encoding is provided in \Cref{fig:encv
 
 In general, it is not trivial to invert the root-pitch-bass representation to a unique chord label.
 Therefore, these three layers are concatenated, along with the hidden state itself, to produce the structured representation from which the chord label is predicted.
-During training, the structured models learn to minimize the sum of losses across all outputs.
-In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
+During training, the structured models learn to minimize the sum of losses across all outputs: root, pitches, bass, and chord label $\hat{y}(t)$.
+%In this way, the model can both leverage the structure of chord space, and learn how to decode the representation into the simplified vocabulary.
+Minimizing the \emph{root} and \emph{pitches} losses corresponds to (approximately) maximizing the \emph{root} and \emph{tetrads} recall scores during training, while \Cref{objective} learns the decoding into the human-readable chord vocabulary.
+This formulation effectively decouples the problems of root and pitch class identification from chord annotation, which is known to be relatively subjective~\cite{humphrey2015four}.
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{encviz}
@@ -536,8 +538,8 @@ The model appears to resolve these toward the more commonly used \texttt{min} an
 \end{figure}
 
 To understand the influence of structured training, \Cref{fig:confdelta} illustrates the difference between the confusion matrices of the structured model \emph{CR2+S+A} and the unstructured model \emph{CR2+A}.
-Here, positive values (red) along the diagonal indicate increased accuracy for the structured model, while negative values along the diagonal (blue) indicate decreased accuracy.
-The net effect is positive, increasing accuracy by +0.8\% over \emph{CR2+A}, which achieves accuracy of 62.8\%.
+Positive values (red) along the diagonal indicate increased accuracy for the structured model, while negative values along the diagonal (blue) indicate decreased accuracy.
+The net effect is positive, increasing accuracy by +0.8\% over \emph{CR2+A} (62.8\%).
 
 Despite a slight degradation for \texttt{maj7}, there are substantial improvements for \texttt{aug}, \texttt{dim7}, \texttt{hdim7}, and modest improvement for \texttt{sus4}.
 Moreover, the negative values in the second column reveal a consistent reduction of confusions to \emph{maj}.
