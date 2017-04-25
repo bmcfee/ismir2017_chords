@@ -256,14 +256,14 @@ For a sequence of $d$-dimensional input vectors $x(t) \in \mathbb{R}^d$, a GRU l
     \hat{h}(t) &=& \rho\left(W_h x(t) + T_h \left( r(t) \odot h(t-1) \right) + b_h \right)\label{eq:candidate}\\
     h(t) &=& u(t) \odot h(t-1) + (1-u(t)) \odot \hat{h}(t),
 \end{eqnarray}
-where $r(t), u(t) \in {[0,1]}^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, ${\sigma(x)={(1+\mathsf{e}^{-x})}^{-1}}$ denotes the logistic function, and $\rho = \tanh$ is a saturating transfer function.
+where $r(t), u(t) \in {[0,1]}^D$ are the \emph{reset} and \emph{update} vectors, each of which are controlled by RNN dynamics depending on the input $x(t)$ and previous hidden state $h(t-1)$, ${\sigma(x)={(1+\mathsf{e}^{-x})}^{-1}}$ denotes the logistic function, and $\rho = \tanh$.
 The parameters are the input mappings $W_* \in \mathbb{R}^{D\times d}$, transition operators $T_* \in \mathbb{R}^{D\times D}$, and bias vectors $b_* \in \mathbb{R}^D$.
 
-When an element of the update vector ${u(t)}_j \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h(t)}_j \leftarrow {h(t-1)}_j$.
+When an element $j$ of the update vector ${u_j(t)} \approx 1$, the corresponding element of the previous hidden state is copied directly to the current state ${h_j(t)} \leftarrow {h_j(t-1)}$.
 Otherwise, if $r(t) \approx 1$, then $h(t)$ evolves according to standard RNN dynamics.
-However, when $r(t) \approx 0$, the $h$ term in~\eqref{eq:candidate} goes to 0 and the update \emph{resets} and depends only on the input $x(t)$.
+However, when both $u(t), r(t) \approx 0$, the $h$ term in~\eqref{eq:candidate} goes to 0 and the update \emph{resets}, depending only on the input $x(t)$.
 This allows the GRU model to persist a hidden state across arbitrarily long spans of time, and capture variable-length temporal dependencies.
-These properties make the GRU model appealing for chord recognition, where dependencies may span long ranges, and are subject to sudden changes rather than gradual evolution.
+These properties make the GRU model appealing for chord recognition, where dependencies may span long ranges (compared to frames), and are subject to sudden changes rather than gradual evolution.
 
 The bi-directional variant consists of two independent GRUs, one running in each time direction, whose hidden state vectors are concatenated to produce the bi-directional hidden state vector $h(t)$.
 This layer integrates over the entirety of the input signal, and provides temporal smoothing and context for the encoded feature representation.
@@ -285,9 +285,9 @@ For the \emph{CR1} architecture, we set the dimensionality of the hidden state v
 The second model, denoted \emph{CR2}, uses a bi-GRU layer to map $h(t)$ to an intermediate representation $h_2(t)$ prior to frame-wise decoding by \cref{eq:decode}.
 To keep the number of parameters comparable between \emph{CR1} and \emph{CR2}, we set the dimensionality of encoder and decoder GRUs to 256.
 
-For each configuration, all model parameters $\Theta$ are jointly trained to maximize the log-likelihood of reference chord labels:
+For each configuration, all model parameters $\Theta$ are jointly trained to maximize the log-likelihood:
 \begin{equation}
-\argmax_\Theta    \sum_t \sum_{c \in V} y_c(t) \log \hat{y}_c(t),
+    \argmax_\Theta    \sum_t \sum_{c \in V} y_c(t) \log \hat{y}_c(t), \label{objective}
 \end{equation}
 where the reference labels are one-hot encoded vectors $y(t) \in {\{0,1\}}^{|V|}$.
 While both architectures have access to the entire observation sequence, \emph{CR2} may be better at capturing long-range interactions.
@@ -321,14 +321,14 @@ First, inversions and suppressed or additional notes are discarded, \eg:
     \quad\mapsto\quad \texttt{D}\flat\texttt{:maj/3}
     \quad\mapsto\quad \texttt{D}\flat\texttt{:maj}.
 \end{align*}
-Next, labels are decomposed into \emph{root} and \emph{pitch classes} (relative to the root) using the functionality provided by \texttt{mir\_eval}~\cite{raffel2014mir_eval}:
+Next, labels are decomposed into \emph{root} and \emph{pitch classes} (relative to the root) using~\texttt{mir\_eval}~\cite{raffel2014mir_eval}:
 \begin{align*}
     \texttt{D}\flat\texttt{:maj} &\mapsto \begin{cases}
         1 & \text{root}\\
         (0, 4, 7) & \text{pitch classes}
     \end{cases}.
 \end{align*}
-The set of active pitch classes is matched against 14 templates: \texttt{min, maj, dim, aug, min6, maj6, min7, maj7, dom7, dim7, hdim7, minmaj7, sus2, sus4}.
+The set of active pitch classes is matched against 14 templates: \texttt{min, maj, dim, aug, min6, maj6, min7, minmaj7, maj7, 7, dim7, hdim7, sus2, sus4}.
 The root and matched template are combined, and mapped to a canonical form to resolve enharmonic equivalences:
 \begin{align*}
     \left(1, (0, 4, 7) \right) &\mapsto \texttt{C}\sharp\texttt{:maj}.
@@ -340,13 +340,13 @@ The final vocabulary contains 170 classes: 2 special symbols (\texttt{N, X}), an
 \subsection{Structured training}
 \label{sec:encoding}
 
-The CR models described above map each hidden state vector to a fixed vocabulary produced by the chord simplification strategy described in \Cref{sec:vocab}.
-They can be optimized in the usual way by minimizing a multi-class classification loss (cross-entropy), but this approach has some clear drawbacks.
+The CR models described above map each hidden state vector $h(t)$ to a fixed vocabulary produced described in \Cref{sec:vocab}.
+They can be optimized in the usual way to maximize~\eqref{objective}, but this approach has some clear drawbacks.
 
 First, it does not leverage the inherent structure of the space of chords.
 If the model predicts \texttt{B:maj} instead of \texttt{B:7}, it is penalized just as much as if it had predicted \texttt{C:maj}.
 This is at odds with evaluation, where predictions are evaluated along multiple dimensions, such as capturing the root, third, or fifth.
-More generally, some mistakes are simply more severe than others from a transcription perspective, and this is not reflected in a 1-of-K classification formulation.
+More generally, some mistakes are simply more severe than others, and this is not reflected in a 1-of-K classification formulation.
 
 Second, the chord simplification strategy is \emph{lossy} in that it discards information such as suppressed or additional notes.
 This can render certain chords ambiguous, and can introduce discrepancies between the (simplified) annotation and the corresponding acoustic content.
@@ -391,7 +391,7 @@ In this way, the model can both leverage the structure of chord space, and learn
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{encviz}
-    \caption{The encoding and predicted chord labels for \emph{The Beatles --- Hold Me Tight} by model \emph{CR2+S+A}.\label{fig:encviz}}
+    \caption{The predicted chord encodings and labels for \emph{The Beatles --- Hold Me Tight} by model \emph{CR2+S+A}.\label{fig:encviz}}
 \end{figure}
 %A summary of all model architectures is provided in \Cref{tab:models}.
 
@@ -440,7 +440,7 @@ Signals were analyzed at 44.1KHz with a hop length of 4096 samples, resulting in
 
 \subsection{Training}
 % training setup
-All models are trained on 8-second patches (86 frames), though the models directly generalize to arbitrarily long inputs.
+All models are trained on 8-second patches (86 frames), though unlike dense networks, they readily support input of arbitrary length.
 For tracks with multiple reference annotations, the output is selected uniformly at random from all references for the patch, which reduces eliminates sampling bias toward specific annotators.
 %   8sec patches (83 frames)
 %   32 patches per batch
@@ -449,7 +449,7 @@ Models are trained using mini-batches of 32 patches per batch, and 512 batches p
 %   ADAM optimization
 We use the ADAM optimizer~\cite{kingma2014adam}, and reduce the learning rate if there is no improvement in validation score after 10 epochs.
 Training is stopped early if there is no improvement in validation score after 20 epochs, and limited to a maximum of 100 epochs total.
-For all models, validation score is determined solely by label prediction loss (cross-entropy).
+For all models, validation score is determined solely by label likelihood (\cref{objective}).
 %   validation by decoder loss
 %   learning rate reduction after 10 epochs
 %   early stopping after 20 epochs
