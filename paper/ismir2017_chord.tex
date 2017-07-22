@@ -59,8 +59,8 @@
 % Three addresses
 % --------------
 \twoauthors%
-  {Brian McFee} {Center for Data Science \\ New York University \\{\tt brian.mcfee@nyu.edu}}
-  {Juan Pablo Bello} {Music and Audio Research Laboratory \\ New York University \\ {\tt jpbello@nyu.edu}}
+{Brian McFee\textsuperscript{1,2}} {\textsuperscript{1}Center for Data Science \\ New York University \\{\tt brian.mcfee@nyu.edu}}
+{Juan Pablo Bello\textsuperscript{2}} {\textsuperscript{2}Music and Audio Research Laboratory \\ New York University \\ {\tt jpbello@nyu.edu}}
 
 %% To make customize author list in Creative Common license, uncomment and customize the next line
 %  \def\authorname{First Author, Second Author, Third Author}
@@ -115,7 +115,7 @@ However, in the large-vocabulary setting, the multi-class formulation ignores th
 Moreover, the distribution of classes becomes highly skewed, thereby making it difficult to model these relationships from purely symbolic representations with no additional structure.
 We hypothesize that leveraging known relationships between chord classes in terms of common roots and shared pitch classes can help mitigate the problem of observation bias, resulting in more accurate models of rare classes.
 
-\subsection{Our contributions}
+\subsection{Our Contributions}
 
 We address the problem of large-vocabulary chord recognition by introducing a structured representation of chord qualities, which decouples the problem of detecting roots and pitch classes from the problem of mapping these properties onto symbolic labels.
 We integrate this representation with deep, convolutional-recurrent neural networks, which are trained end-to-end to predict time-varying chord sequences from spectral audio representations.
@@ -493,7 +493,6 @@ The combined effect of structured training, deep decoder, and data augmentation 
 \begin{table*}
     \centering
     \small
-    \caption{Median weighted recall scores for methods under comparison.\label{tab:results}}
     \begin{tabular}{lrrrrrrr}
         \toprule
         Method  & Root & Thirds & Triads & Sevenths & Tetrads & Maj-Min & MIREX\\
@@ -507,6 +506,8 @@ The combined effect of structured training, deep decoder, and data augmentation 
         DNN~\cite{humphrey2015four}     & 0.838 & 0.809 & 0.766 & 0.654 & 0.605 & 0.803 & 0.812\\
         \bottomrule
     \end{tabular}
+    \normalsize
+    \caption{Median weighted recall scores for methods under comparison.\label{tab:results}}
 \end{table*}
 \subsection{Error analysis}
 
