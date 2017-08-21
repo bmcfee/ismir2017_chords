@@ -36,7 +36,7 @@ def predict_example(model, pump, file_id, working, model_dir):
     preds = model.predict(data['cqt/mag'])
     ann = pump['chord_tag'].inverse(preds[1][0])
     J = jams.JAMS()
-    J.file_metadata.identifiers['track_id'] = file_id
+    J.file_metadata.identifiers.track_id = file_id
     J.file_metadata.duration = ann.data[-1].time + ann.data[-1].duration
     J.annotations.append(ann)
     J.save(os.path.join(model_dir, 'predictions', '{}.jams'.format(file_id)))
