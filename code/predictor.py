@@ -50,7 +50,7 @@ def test_fold(pump, working, model_dir, fold_number):
                                 compile=False)
 
     test_ids = pd.read_csv(os.path.join(working,
-                                        'test{:02d}'.format(fold_number)),
+                                        'test{:02d}.csv'.format(fold_number)),
                            header=None, squeeze=True)
 
     for file_id in tqdm(test_ids, desc='Predicting'):
