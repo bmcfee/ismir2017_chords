@@ -75,7 +75,7 @@ def parse_args(args):
                                              'working', 'chords'),
                         help='Path to working directory')
 
-    parser.add_argument(dest='model_dir', type=str, required=True,
+    parser.add_argument(dest='model_dir', type=str,
                         help='Path to model directory')
 
     return parser.parse_args(args)
