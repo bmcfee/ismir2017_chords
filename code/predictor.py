@@ -30,7 +30,7 @@ import jams
 #       save jams out
 
 
-def predict_example(model, pump, file_id, working):
+def predict_example(model, pump, file_id, working, model_dir):
 
     data = dict(np.load(os.path.join(working, 'pump', '{}.npz'.format(file_id))))
     preds = model.predict(data['cqt/mag'])
@@ -39,7 +39,7 @@ def predict_example(model, pump, file_id, working):
     J.file_metadata.identifiers['track_id'] = file_id
     J.file_metadata.duration = ann.data[-1].time + ann.data[-1].duration
     J.annotations.append(ann)
-    J.save(os.path.join(working, 'predictions', '{}.jams'.format(file_id)))
+    J.save(os.path.join(model_dir, 'predictions', '{}.jams'.format(file_id)))
 
 
 def test_fold(pump, working, model_dir, fold_number):
@@ -54,14 +54,14 @@ def test_fold(pump, working, model_dir, fold_number):
                            header=None, squeeze=True)
 
     for file_id in tqdm(test_ids, desc='Predicting'):
-        predict_example(model, pump, file_id, working)
+        predict_example(model, pump, file_id, working, model_dir)
 
 
 def evalutron(working, model_dir):
 
     pump = pickle.load(open(os.path.join(working, 'pump.pkl'), 'rb'))
 
-    jams.util.smkdirs(os.path.join('working', 'predictions'))
+    jams.util.smkdirs(os.path.join(model_dir, 'predictions'))
 
     for fold in tqdm(range(5), desc='Fold'):
         test_fold(pump, working, model_dir, fold)
