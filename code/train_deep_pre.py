@@ -337,7 +337,7 @@ def construct_model(pump, structured):
 
 def make_output_path(working, structured, augmentation, weighted, temporal=True):
 
-    subdir = 'model_deep'
+    subdir = 'model_deep_pre'
     if structured:
         subdir += '_struct'
 
