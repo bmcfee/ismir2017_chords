@@ -92,7 +92,6 @@ def process_arguments(args):
                         default=10,
                         help='# epochs without improvement to reduce learning rate')
 
-
     return parser.parse_args(args)
 
 
@@ -280,7 +279,7 @@ def construct_model(pump, structured):
 
     # BRNN layer
     rnn1 = K.layers.Bidirectional(K.layers.GRU(128,
-                                              return_sequences=True))(squeeze)
+                                               return_sequences=True))(squeeze)
 
     rnn = K.layers.Bidirectional(K.layers.GRU(128,
                                               return_sequences=True))(rnn1)
