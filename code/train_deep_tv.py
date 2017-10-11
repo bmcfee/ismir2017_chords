@@ -276,6 +276,14 @@ class TVnorm(K.regularizers.Regularizer):
         return self.l * K.backend.sum(K.backend.abs(x[idx1] - x[idx2]))
 
 
+def tvnorm(x):
+    idx1 = [Ellipsis] * x.ndim
+    idx2 = [Ellipsis] * x.ndim
+    idx1[1] = slice(1, None)
+    idx2[1] = slice(x.shape[1] - 1)
+    return 0.01 * K.backend.sum(K.backend.abs(x[idx1] - x[idx2]))
+
+
 def construct_model(pump, structured):
 
     INPUTS = 'cqt/mag'
@@ -304,9 +312,11 @@ def construct_model(pump, structured):
     rnn1 = K.layers.Bidirectional(K.layers.GRU(128,
                                                return_sequences=True))(squeeze)
 
-    rnn = K.layers.Bidirectional(K.layers.GRU(128,
-                                              return_sequences=True,
-                                              activity_regularizer=TVnorm(0.01, axis=1)))(rnn1)
+    bi2 = K.layers.Bidirectional(K.layers.GRU(128, return_sequences=True))
+    bi2.forward_layer.activity_regularizer = TVnorm(0.01, axis=1)
+    bi2.backward_layer.activity_regularizer = TVnorm(0.01, axis=1)
+    rnn = bi2(rnn1)
+
 
     if structured:
         # 1: pitch class predictor

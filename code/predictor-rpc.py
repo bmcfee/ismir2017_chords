@@ -27,7 +27,7 @@ def mkout(output_dir, filename):
 
 def predict_example(model, pump, audio_file, output_dir):
 
-    data = pump.transform(filename=audio_file)
+    data = pump.transform(audio_f=audio_file)
 
     p_tag, p_pc, p_root, p_bass = model.predict(data['cqt/mag'])
 
@@ -43,10 +43,13 @@ def test_fold(pump, model_dir, fold_number, index_file, output_dir):
                                 custom_objects=dict(K=K),
                                 compile=False)
 
-    test_files = pd.read_csv(index_file, header=None, squeeze=True)
+    test_files = pd.read_csv(index_file, header=None, squeeze=True, delimiter='\t')
 
     for filename in tqdm(test_files, desc='Predicting'):
-        predict_example(model, pump, filename, output_dir)
+        try:
+            predict_example(model, pump, filename, output_dir)
+        except:
+            print('Failure on {}'.format(filename))
 
 
 def evalutron(working, model_dir, fold, index_file, output_dir):

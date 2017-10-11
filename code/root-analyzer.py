@@ -19,7 +19,10 @@ def mkout(output_dir, filename):
 
     subdir = os.path.join(output_dir, subidx)
 
-    jams.util.smkdirs(subdir)
+    try:
+        jams.util.smkdirs(subdir)
+    except:
+        pass
 
     baseidx = os.path.splitext(os.path.basename(filename))[0]
 
@@ -32,15 +35,21 @@ def chord_stats(root, alpha=1.0):
     N, d = root.shape
     unigram = (alpha * np.ones(d) + root.sum(axis=0)) / (N + d * alpha)
     bigram = alpha * np.ones((d, d))
+    all_transitions = 0.0
     for t in range(1, N):
-        bigram += np.multiply.outer(root[t-1], root[t])
+        outer = np.multiply.outer(root[t-1], root[1])
+        p_transition = 1 - np.trace(outer)
+        all_transitions += p_transition
+        bigram += outer * p_transition
+    bigram /= all_transitions
     bigram /= (N - 1 + (d**2) * alpha)
+
     return unigram, bigram
 
 
 def analyze_relative(analysis, tcmodel):
 
-    unigram, bigram = chord_stats(analysis['p_root'][0], alpha=1.0)
+    unigram, bigram = chord_stats(analysis['p_root'][0], alpha=1e-3)
 
     # Drop no-chord states
     unigram = unigram[:12] / unigram[:12].sum()
@@ -80,14 +89,14 @@ def analyze_relative(analysis, tcmodel):
 
         abs_step[i] = (bigram_center * e).sum()
 
-    return unigram_rel, changes_rel, changes_t_rel, abs_step
+    return unigram_rel, changes_rel, changes_t_rel, abs_step, centers
 
 
 def predict_example(tcmodel, data_file, output_dir):
 
     analysis = np.load(data_file)
 
-    unigram, changes, changes_t, abstep = analyze_relative(analysis, tcmodel)
+    unigram, changes, changes_t, abstep, centers = analyze_relative(analysis, tcmodel)
 
     # Save p_root, p_pc to disk
     outfile = mkout(output_dir, data_file)
@@ -95,7 +104,8 @@ def predict_example(tcmodel, data_file, output_dir):
              unigram=unigram,
              changes=changes,
              changes_t=changes_t,
-             abstep=abstep)
+             abstep=abstep,
+             centers=centers)
 
 
 def analyze_data(tcmodel, index_file, output_dir, n_jobs):
