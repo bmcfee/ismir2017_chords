@@ -35,21 +35,30 @@ def chord_stats(root, alpha=1.0):
     N, d = root.shape
     unigram = (alpha * np.ones(d) + root.sum(axis=0)) / (N + d * alpha)
     bigram = alpha * np.ones((d, d))
+    p_transition = np.zeros(N)
     all_transitions = 0.0
+
     for t in range(1, N):
         outer = np.multiply.outer(root[t-1], root[1])
-        p_transition = 1 - np.trace(outer)
-        all_transitions += p_transition
-        bigram += outer * p_transition
-    bigram /= all_transitions
+        p_transition[t] = 1 - np.trace(outer)
+
+        # Squash the diagonal and renormalize
+        # this way, bigram calculations are conditional on transitioning
+        outer -= np.diag(np.diag(outer))
+        outer /= (np.sum(outer) + 1e-10)
+
+        all_transitions += p_transition[t]
+        bigram += outer * p_transition[t]
+    if all_transitions > 0:
+        bigram /= all_transitions
     bigram /= (N - 1 + (d**2) * alpha)
 
-    return unigram, bigram
+    return unigram, bigram, p_transition
 
 
 def analyze_relative(analysis, tcmodel):
 
-    unigram, bigram = chord_stats(analysis['p_root'][0], alpha=1e-3)
+    unigram, bigram, p_trans = chord_stats(analysis['p_root'][0], alpha=1e-3)
 
     # Drop no-chord states
     unigram = unigram[:12] / unigram[:12].sum()
@@ -89,14 +98,14 @@ def analyze_relative(analysis, tcmodel):
 
         abs_step[i] = (bigram_center * e).sum()
 
-    return unigram_rel, changes_rel, changes_t_rel, abs_step, centers
+    return unigram_rel, changes_rel, changes_t_rel, abs_step, centers, p_trans
 
 
 def predict_example(tcmodel, data_file, output_dir):
 
     analysis = np.load(data_file)
 
-    unigram, changes, changes_t, abstep, centers = analyze_relative(analysis, tcmodel)
+    unigram, changes, changes_t, abstep, centers, p_trans = analyze_relative(analysis, tcmodel)
 
     # Save p_root, p_pc to disk
     outfile = mkout(output_dir, data_file)
@@ -105,7 +114,8 @@ def predict_example(tcmodel, data_file, output_dir):
              changes=changes,
              changes_t=changes_t,
              abstep=abstep,
-             centers=centers)
+             centers=centers,
+             p_trans=p_trans)
 
 
 def analyze_data(tcmodel, index_file, output_dir, n_jobs):
